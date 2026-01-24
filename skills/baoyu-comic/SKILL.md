@@ -201,6 +201,12 @@ npx -y bun ${SKILL_DIR}/../baoyu-image-gen/scripts/main.ts \
   --image characters/characters.png --ar 4:3
 ```
 
+**Compress character sheet** (recommended):
+Compress to reduce token usage when used as reference image:
+- Use available image compression skill (if any)
+- Or system tools: `pngquant`, `optipng`, `sips` (macOS)
+- **Keep PNG format**, lossless compression preferred
+
 **7.2 Generate each page WITH character reference**:
 
 | Skill Capability | Strategy |

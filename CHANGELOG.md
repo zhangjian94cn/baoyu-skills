@@ -2,6 +2,11 @@
 
 English | [中文](./CHANGELOG.zh.md)
 
+## 1.21.1 - 2026-01-24
+
+### Documentation
+- `baoyu-comic`: adds character sheet compression step after generation to reduce token usage when used as reference image.
+
 ## 1.21.0 - 2026-01-24
 
 ### Features

@@ -153,7 +153,11 @@ Technical terms remain in English.
 
 ```
 Comic Progress:
-- [ ] Step 1: Setup & Analyze (1.1 Preferences, 1.2 Analyze, 1.3 Check existing)
+- [ ] Step 1: Setup & Analyze
+  - [ ] 1.1 Preferences (EXTEND.md) ⛔ BLOCKING
+    - [ ] Found → load preferences → continue
+    - [ ] Not found → run first-time setup → MUST complete before other steps
+  - [ ] 1.2 Analyze, 1.3 Check existing
 - [ ] Step 2: Confirmation - Style & options ⚠️ REQUIRED
 - [ ] Step 3: Generate storyboard + characters
 - [ ] Step 4: Review outline (conditional)
@@ -169,14 +173,22 @@ Comic Progress:
 ### Flow
 
 ```
-Input → Preferences → Analyze → [Check Existing?] → [Confirm: Style + Reviews] → Storyboard → [Review?] → Prompts → [Review?] → Images → PDF → Complete
+Input → [Preferences] ─┬─ Found → Continue
+                       │
+                       └─ Not found → First-Time Setup ⛔ BLOCKING
+                                      │
+                                      └─ Complete setup → Save EXTEND.md → Continue
+                                                                              │
+        ┌─────────────────────────────────────────────────────────────────────┘
+        ↓
+Analyze → [Check Existing?] → [Confirm: Style + Reviews] → Storyboard → [Review?] → Prompts → [Review?] → Images → PDF → Complete
 ```
 
 ### Step Summary
 
 | Step | Action | Key Output |
 |------|--------|------------|
-| 1.1 | Load EXTEND.md preferences | Config loaded |
+| 1.1 | Load EXTEND.md preferences ⛔ BLOCKING if not found | Config loaded |
 | 1.2 | Analyze content | `analysis.md` |
 | 1.3 | Check existing directory | Handle conflicts |
 | 2 | Confirm style, focus, audience, reviews | User preferences |
@@ -229,12 +241,19 @@ npx -y bun ${SKILL_DIR}/../baoyu-image-gen/scripts/main.ts \
 
 **Full workflow details**: [references/workflow.md](references/workflow.md)
 
-### EXTEND.md Paths
+### EXTEND.md Paths ⛔ BLOCKING
+
+**CRITICAL**: If EXTEND.md not found, MUST complete first-time setup before ANY other questions or steps. Do NOT proceed to content analysis, do NOT ask about art style, do NOT ask about tone — ONLY complete the preferences setup first.
 
 | Path | Location |
 |------|----------|
 | `.baoyu-skills/baoyu-comic/EXTEND.md` | Project directory |
 | `$HOME/.baoyu-skills/baoyu-comic/EXTEND.md` | User home |
+
+| Result | Action |
+|--------|--------|
+| Found | Read, parse, display summary → Continue |
+| Not found | ⛔ **BLOCKING**: Run first-time setup ONLY ([references/config/first-time-setup.md](references/config/first-time-setup.md)) → Complete and save EXTEND.md → Then continue |
 
 **EXTEND.md Supports**: Watermark | Preferred art/tone/layout | Custom style definitions | Character presets | Language preference
 

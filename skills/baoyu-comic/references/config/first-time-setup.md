@@ -9,6 +9,14 @@ description: First-time setup flow for baoyu-comic preferences
 
 When no EXTEND.md is found, guide user through preference setup.
 
+**⛔ BLOCKING OPERATION**: This setup MUST complete before ANY other workflow steps. Do NOT:
+- Ask about content/source material
+- Ask about art style or tone
+- Ask about layout preferences
+- Proceed to content analysis
+
+ONLY ask the questions in this setup flow, save EXTEND.md, then continue.
+
 ## Setup Flow
 
 ```

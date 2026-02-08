@@ -12,6 +12,7 @@ Text/image generation via Gemini Web API. Supports reference images and multi-tu
 **Important**: All scripts are located in the `scripts/` subdirectory of this skill.
 
 **Agent Execution Instructions**:
+
 1. Determine this SKILL.md file's directory path as `SKILL_DIR`
 2. Script path = `${SKILL_DIR}/scripts/<script-name>.ts`
 3. Replace all `${SKILL_DIR}` in this document with the actual path
@@ -27,11 +28,13 @@ Text/image generation via Gemini Web API. Supports reference images and multi-tu
 Before first use, verify user consent for reverse-engineered API usage.
 
 **Consent file locations**:
+
 - macOS: `~/Library/Application Support/baoyu-skills/gemini-web/consent.json`
 - Linux: `~/.local/share/baoyu-skills/gemini-web/consent.json`
 - Windows: `%APPDATA%\baoyu-skills\gemini-web\consent.json`
 
 **Flow**:
+
 1. Check if consent file exists with `accepted: true` and `disclaimerVersion: "1.0"`
 2. If valid consent exists → print warning with `acceptedAt` date, proceed
 3. If no consent → show disclaimer, ask user via `AskUserQuestion`:
@@ -54,19 +57,19 @@ test -f "$HOME/.baoyu-skills/baoyu-danger-gemini-web/EXTEND.md" && echo "user"
 ```
 
 ┌──────────────────────────────────────────────────────────┬───────────────────┐
-│                           Path                           │     Location      │
+│ Path │ Location │
 ├──────────────────────────────────────────────────────────┼───────────────────┤
-│ .baoyu-skills/baoyu-danger-gemini-web/EXTEND.md          │ Project directory │
+│ .baoyu-skills/baoyu-danger-gemini-web/EXTEND.md │ Project directory │
 ├──────────────────────────────────────────────────────────┼───────────────────┤
-│ $HOME/.baoyu-skills/baoyu-danger-gemini-web/EXTEND.md    │ User home         │
+│ $HOME/.baoyu-skills/baoyu-danger-gemini-web/EXTEND.md │ User home │
 └──────────────────────────────────────────────────────────┴───────────────────┘
 
 ┌───────────┬───────────────────────────────────────────────────────────────────────────┐
-│  Result   │                                  Action                                   │
+│ Result │ Action │
 ├───────────┼───────────────────────────────────────────────────────────────────────────┤
-│ Found     │ Read, parse, apply settings                                               │
+│ Found │ Read, parse, apply settings │
 ├───────────┼───────────────────────────────────────────────────────────────────────────┤
-│ Not found │ Use defaults                                                              │
+│ Not found │ Use defaults │
 └───────────┴───────────────────────────────────────────────────────────────────────────┘
 
 **EXTEND.md Supports**: Default model | Proxy settings | Custom data directory
@@ -96,26 +99,28 @@ npx -y bun ${SKILL_DIR}/scripts/main.ts "Hello" --json
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--prompt`, `-p` | Prompt text |
-| `--promptfiles` | Read prompt from files (concatenated) |
-| `--model`, `-m` | Model: gemini-3-pro (default), gemini-2.5-pro, gemini-2.5-flash |
-| `--image [path]` | Generate image (default: generated.png) |
-| `--reference`, `--ref` | Reference images for vision input |
-| `--sessionId` | Session ID for multi-turn conversation |
-| `--list-sessions` | List saved sessions |
-| `--json` | Output as JSON |
-| `--login` | Refresh cookies, then exit |
-| `--cookie-path` | Custom cookie file path |
-| `--profile-dir` | Chrome profile directory |
+| Option                 | Description                                                     |
+| ---------------------- | --------------------------------------------------------------- |
+| `--prompt`, `-p`       | Prompt text                                                     |
+| `--promptfiles`        | Read prompt from files (concatenated)                           |
+| `--model`, `-m`        | Model: gemini-3-pro (default), gemini-2.5-pro, gemini-2.5-flash |
+| `--image [path]`       | Generate image (default: generated.png)                         |
+| `--reference`, `--ref` | Reference images for vision input                               |
+| `--sessionId`          | Session ID for multi-turn conversation                          |
+| `--list-sessions`      | List saved sessions                                             |
+| `--account <name>`     | Use a named account (isolated cookies & Chrome profile)         |
+| `--list-accounts`      | List saved accounts                                             |
+| `--json`               | Output as JSON                                                  |
+| `--login`              | Refresh cookies, then exit                                      |
+| `--cookie-path`        | Custom cookie file path                                         |
+| `--profile-dir`        | Chrome profile directory                                        |
 
 ## Models
 
-| Model | Description |
-|-------|-------------|
-| `gemini-3-pro` | Default, latest |
-| `gemini-2.5-pro` | Previous pro |
+| Model              | Description       |
+| ------------------ | ----------------- |
+| `gemini-3-pro`     | Default, latest   |
+| `gemini-2.5-pro`   | Previous pro      |
 | `gemini-2.5-flash` | Fast, lightweight |
 
 ## Authentication
@@ -128,13 +133,13 @@ Force refresh: `--login` flag. Override browser: `GEMINI_WEB_CHROME_PATH` env va
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `GEMINI_WEB_DATA_DIR` | Data directory |
-| `GEMINI_WEB_COOKIE_PATH` | Cookie file path |
-| `GEMINI_WEB_CHROME_PROFILE_DIR` | Chrome profile directory |
-| `GEMINI_WEB_CHROME_PATH` | Chrome executable path |
-| `HTTP_PROXY`, `HTTPS_PROXY` | Proxy for Google access (set inline with command) |
+| Variable                        | Description                                       |
+| ------------------------------- | ------------------------------------------------- |
+| `GEMINI_WEB_DATA_DIR`           | Data directory                                    |
+| `GEMINI_WEB_COOKIE_PATH`        | Cookie file path                                  |
+| `GEMINI_WEB_CHROME_PROFILE_DIR` | Chrome profile directory                          |
+| `GEMINI_WEB_CHROME_PATH`        | Chrome executable path                            |
+| `HTTP_PROXY`, `HTTPS_PROXY`     | Proxy for Google access (set inline with command) |
 
 ## Sessions
 

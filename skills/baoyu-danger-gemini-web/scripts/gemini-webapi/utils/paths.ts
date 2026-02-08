@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -42,5 +43,30 @@ export function resolveGeminiWebSessionsDir(): string {
 export function resolveGeminiWebSessionPath(name: string): string {
   const sanitized = name.replace(/[^a-zA-Z0-9_-]/g, '_');
   return path.join(resolveGeminiWebSessionsDir(), `${sanitized}.json`);
+}
+
+export function resolveGeminiWebAccountCookiePath(account: string): string {
+  const sanitized = account.replace(/[^a-zA-Z0-9_-]/g, '_');
+  return path.join(resolveGeminiWebDataDir(), `cookies-${sanitized}.json`);
+}
+
+export function resolveGeminiWebAccountProfileDir(account: string): string {
+  const sanitized = account.replace(/[^a-zA-Z0-9_-]/g, '_');
+  return path.join(resolveGeminiWebDataDir(), `chrome-profile-${sanitized}`);
+}
+
+export function listGeminiWebAccounts(): string[] {
+  const dir = resolveGeminiWebDataDir();
+  try {
+    const files = fs.readdirSync(dir);
+    const accounts: string[] = [];
+    for (const f of files) {
+      const m = f.match(/^cookies-(.+)\.json$/);
+      if (m && m[1]) accounts.push(m[1]);
+    }
+    return accounts;
+  } catch {
+    return [];
+  }
 }
 

@@ -159,3 +159,7 @@ comic/
 *.ipr
 
 .claude/skills/baoyu-skill-evolution
+generated-images/
+*.png
+google_accounts*.json
+google_accounts*.js

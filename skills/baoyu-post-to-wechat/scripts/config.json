@@ -1,0 +1,12 @@
+{
+  "$schema": "./config.schema.json",
+  "publish": {
+    "method": "remote",
+    "theme": "default"
+  },
+  "remote": {
+    "host": "tencent-server",
+    "dir": "~/baoyu-skills",
+    "bunPath": "~/.bun/bin/bun"
+  }
+}

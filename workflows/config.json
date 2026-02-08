@@ -1,0 +1,16 @@
+{
+  "$schema": "./config.schema.json",
+  "cover": {
+    "autoGenerate": true,
+    "skill": "gemini-web",
+    "provider": "google",
+    "aspectRatio": "2.35:1",
+    "defaultPromptPrefix": "A modern, clean cover image for: "
+  },
+  "convert": {
+    "theme": "default"
+  },
+  "publish": {
+    "method": "remote"
+  }
+}

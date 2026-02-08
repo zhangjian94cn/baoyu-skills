@@ -197,11 +197,18 @@ export async function convertMarkdown(markdownPath: string, options?: { title?: 
 
   console.error(`[markdown-to-html] Rendering with theme: ${theme}, keepTitle: ${keepTitle}`);
 
-  const args = ['-y', 'bun', renderScript, tempMdPath, '--theme', theme];
-  if (keepTitle) args.push('--keep-title');
+  const isWindows = os.platform() === 'win32';
 
-  const result = spawnSync('npx', args, {
+  const scriptArgs = [renderScript, tempMdPath, '--theme', theme];
+  if (keepTitle) scriptArgs.push('--keep-title');
+
+  const [cmd, args, shell] = isWindows
+    ? ['bun', scriptArgs, false] as const
+    : ['npx', ['-y', 'bun', ...scriptArgs], true] as const;
+
+  const result = spawnSync(cmd, [...args], {
     stdio: ['inherit', 'pipe', 'pipe'],
+    shell,
     cwd: baseDir,
   });
 

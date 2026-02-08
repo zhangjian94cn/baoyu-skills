@@ -17,15 +17,15 @@ npx -y bun ./scripts/wechat-article.ts --markdown article.md --author "作者名
 
 ## Parameters
 
-| Parameter | Description |
-|-----------|-------------|
-| `--markdown <path>` | Markdown file to convert and post |
-| `--theme <name>` | Theme: default, grace, or simple |
-| `--title <text>` | Override title (auto-extracted from markdown) |
-| `--author <name>` | Author name (default: 宝玉) |
-| `--summary <text>` | Article summary |
-| `--html <path>` | Pre-rendered HTML file (alternative to markdown) |
-| `--profile <dir>` | Chrome profile directory |
+| Parameter           | Description                                      |
+| ------------------- | ------------------------------------------------ |
+| `--markdown <path>` | Markdown file to convert and post                |
+| `--theme <name>`    | Theme: default, grace, or simple                 |
+| `--title <text>`    | Override title (auto-extracted from markdown)    |
+| `--author <name>`   | Author name (default: 宝玉)                      |
+| `--summary <text>`  | Article summary                                  |
+| `--html <path>`     | Pre-rendered HTML file (alternative to markdown) |
+| `--profile <dir>`   | Chrome profile directory                         |
 
 ## Markdown Format
 
@@ -37,7 +37,7 @@ author: Author Name
 
 # Title (becomes article title)
 
-Regular paragraph with **bold** and *italic*.
+Regular paragraph with **bold** and _italic_.
 
 ## Section Header
 
@@ -64,11 +64,11 @@ Regular paragraph with **bold** and *italic*.
 
 ## Scripts
 
-| Script | Purpose |
-|--------|---------|
-| `wechat-article.ts` | Main article publishing script |
-| `md-to-wechat.ts` | Markdown to HTML with placeholders |
-| `md/render.ts` | Markdown rendering with themes |
+| Script              | Purpose                            |
+| ------------------- | ---------------------------------- |
+| `wechat-article.ts` | Main article publishing script     |
+| `md-to-wechat.ts`   | Markdown to HTML with placeholders |
+| `md/render.ts`      | Markdown rendering with themes     |
 
 ## Example Session
 
@@ -87,3 +87,15 @@ Claude:
    - Pastes image
 6. Reports: "Article composed with 5 images."
 ```
+
+## Remote Server Publishing (远程服务器发布)
+
+适用于动态 IP 或使用代理的用户。通过固定 IP 的云服务器执行发布脚本。
+
+```bash
+# 上传文章并远程发布
+scp article.html wechat-server:~/baoyu-skills/
+ssh wechat-server "cd ~/baoyu-skills && ~/.bun/bin/bun scripts/wechat-api.ts article.html --title '标题'"
+```
+
+详细配置步骤见 [remote-server-setup.md](remote-server-setup.md)。

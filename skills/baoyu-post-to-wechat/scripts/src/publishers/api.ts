@@ -1,0 +1,74 @@
+/**
+ * API 发布策略
+ *
+ * 通过微信公众号 API 直接发布文章到草稿箱。
+ * 需要在微信后台 IP 白名单中添加服务器 IP。
+ *
+ * 底层调用 wechat-api.ts 的核心逻辑。
+ */
+
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import type { Publisher, PublishOptions, PublishResult } from "./types.ts";
+
+const isWindows = os.platform() === "win32";
+
+export class ApiPublisher implements Publisher {
+  readonly name = "api";
+
+  async publish(options: PublishOptions): Promise<PublishResult> {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const apiScript = path.resolve(__dirname, "../wechat-api.ts");
+
+    if (!fs.existsSync(apiScript)) {
+      return { success: false, message: `API script not found: ${apiScript}` };
+    }
+
+    // 构建 wechat-api.ts 的参数
+    const scriptArgs: string[] = [apiScript, options.htmlFilePath];
+
+    if (options.title) scriptArgs.push("--title", options.title);
+    if (options.author) scriptArgs.push("--author", options.author);
+    if (options.summary) scriptArgs.push("--summary", options.summary);
+    if (options.coverPath) scriptArgs.push("--cover", options.coverPath);
+
+    console.log(`[api] 调用 API 发布: ${options.title}`);
+    const [cmd, args, shell] = isWindows
+      ? ["bun", scriptArgs, false] as const
+      : ["npx", ["-y", "bun", ...scriptArgs], true] as const;
+    const result = spawnSync(cmd, [...args], {
+      stdio: ["inherit", "pipe", "pipe"],
+      encoding: "utf-8",
+      shell,
+    });
+
+    const stdout = result.stdout || "";
+    const stderr = result.stderr || "";
+
+    if (stderr) console.error(stderr);
+
+    if (result.status !== 0) {
+      return {
+        success: false,
+        message: `API 发布失败 (exit ${result.status}): ${stderr || stdout}`,
+      };
+    }
+
+    // 解析输出中的 media_id
+    let mediaId: string | undefined;
+    try {
+      const json = JSON.parse(stdout);
+      mediaId = json.media_id;
+    } catch {}
+
+    return {
+      success: true,
+      mediaId,
+      message: `API 发布成功${mediaId ? ` (media_id: ${mediaId})` : ""}`,
+    };
+  }
+}

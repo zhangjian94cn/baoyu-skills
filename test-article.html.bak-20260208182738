@@ -1,0 +1,22 @@
+<!doctype html>
+<html style="    ">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>测试文章 - Claude Code 自动发布</title>
+  <meta name="author" content="测试作者">
+  <meta name="description" content="这是一篇通过 Claude Code 自动发布的测试文章，用于验证微信公众号 API 发布功能。">
+  
+</head>
+<body style="padding: 24px; background: #ffffff; max-width: 860px; margin: 0 auto; font-family: -apple-system-font,BlinkMacSystemFont, Helvetica Neue, PingFang SC, Hiragino Sans GB , Microsoft YaHei UI , Microsoft YaHei ,Arial,sans-serif; font-size: 16px; line-height: 1.75; text-align: left;">
+  <div id="output">
+<section class="container" style="font-family: -apple-system-font,BlinkMacSystemFont, Helvetica Neue, PingFang SC, Hiragino Sans GB , Microsoft YaHei UI , Microsoft YaHei ,Arial,sans-serif; font-size: 16px; line-height: 1.75; text-align: left;"><hr class="hr" style="border-style: solid; border-width: 2px 0 0; border-color: rgba(0, 0, 0, 0.1); -webkit-transform-origin: 0 0; -webkit-transform: scale(1, 0.5); transform-origin: 0 0; transform: scale(1, 0.5); height: 0.4em; margin: 1.5em 0; margin-top: 0 !important;"><h1 class="h1" data-heading="true" style="display: table; padding: 0 1em; border-bottom: 2px solid #0F4C81; margin: 2em auto 1em; color: #3f3f3f; font-size: calc(16px * 1.2); font-weight: bold; text-align: center;">测试文章 - Claude Code 自动发布</h1><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这是一篇<strong style="color: #0F4C81; font-weight: bold; font-size: inherit;">测试文章</strong>，用于验证微信公众号 API 发布功能是否正常工作。</p><h2 class="h2" data-heading="true" style="display: table; padding: 0 0.2em; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-size: calc(16px * 1.2); font-weight: bold; text-align: center;">功能特点</h2><ul class="ul" style="list-style: circle; padding-left: 1em; margin-left: 0; color: #3f3f3f;"><li class="listitem" style="display: block; margin: 0.2em 8px; color: #3f3f3f;">• ✅ 支持 Markdown 格式</li><li class="listitem" style="display: block; margin: 0.2em 8px; color: #3f3f3f;">• ✅ 自动转换为公众号格式</li><li class="listitem" style="display: block; margin: 0.2em 8px; color: #3f3f3f;">• ✅ 支持通过代理发布（固定 IP）</li></ul><h2 class="h2" data-heading="true" style="display: table; padding: 0 0.2em; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-size: calc(16px * 1.2); font-weight: bold; text-align: center;">技术说明</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">本文通过以下方式发布：</p><ol class="ol" style="padding-left: 1em; margin-left: 0; color: #3f3f3f;"><li class="listitem" style="display: block; margin: 0.2em 8px; color: #3f3f3f;">1. 本地编写 Markdown 文章</li><li class="listitem" style="display: block; margin: 0.2em 8px; color: #3f3f3f;">2. 通过 SSH 隧道连接腾讯云服务器</li><li class="listitem" style="display: block; margin: 0.2em 8px; color: #3f3f3f;">3. 使用固定 IP 调用微信公众号 API</li><li class="listitem" style="display: block; margin: 0.2em 8px; color: #3f3f3f;">4. 自动保存为草稿</li></ol><blockquote class="blockquote" style="margin-top: 0; margin-right: 0; margin-left: 0; font-style: normal; padding: 1em; border-left: 4px solid #0F4C81; border-radius: 6px; color: #3f3f3f; background: #f7f7f7; margin-bottom: 1em;"><p class="p" style="display: block; font-size: 1em; letter-spacing: 0.1em; color: #3f3f3f; margin: 0;">发布时间：2026 年 2 月 6 日</p></blockquote><hr class="hr" style="border-style: solid; border-width: 2px 0 0; border-color: rgba(0, 0, 0, 0.1); -webkit-transform-origin: 0 0; -webkit-transform: scale(1, 0.5); transform-origin: 0 0; transform: scale(1, 0.5); height: 0.4em; margin: 1.5em 0;"><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><em style="font-style: italic; font-size: inherit;">这是一篇测试文章，如果您看到这篇文章，说明发布功能正常工作！</em></p>
+    
+  
+    
+  
+    
+  </section>
+  </div>
+</body>
+</html>

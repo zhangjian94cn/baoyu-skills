@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WeChat Publisher Config",
+  "type": "object",
+  "properties": {
+    "publish": {
+      "type": "object",
+      "description": "发布相关配置",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["api", "browser", "remote"],
+          "default": "remote",
+          "description": "发布策略: api=微信API直接发布, browser=浏览器CDP自动化, remote=SSH远程服务器"
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["default", "grace", "simple"],
+          "default": "default",
+          "description": "Markdown 转 HTML 的主题"
+        }
+      }
+    },
+    "remote": {
+      "type": "object",
+      "description": "远程服务器配置（remote 模式使用）",
+      "properties": {
+        "host": {
+          "type": "string",
+          "default": "tencent-server",
+          "description": "SSH 主机别名（需在 ~/.ssh/config 配置）"
+        },
+        "dir": {
+          "type": "string",
+          "default": "~/baoyu-skills",
+          "description": "远程服务器上的项目目录"
+        },
+        "bunPath": {
+          "type": "string",
+          "default": "~/.bun/bin/bun",
+          "description": "远程服务器上的 Bun 路径"
+        }
+      }
+    }
+  }
+}

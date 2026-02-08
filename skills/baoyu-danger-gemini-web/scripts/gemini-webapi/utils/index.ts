@@ -13,6 +13,9 @@ export {
   resolveGeminiWebDataDir,
   resolveGeminiWebSessionPath,
   resolveGeminiWebSessionsDir,
+  resolveGeminiWebAccountCookiePath,
+  resolveGeminiWebAccountProfileDir,
+  listGeminiWebAccounts,
 } from './paths.js';
 export { cookie_header, cookieHeader, fetch_with_timeout, fetchWithTimeout, sleep } from './http.js';
 

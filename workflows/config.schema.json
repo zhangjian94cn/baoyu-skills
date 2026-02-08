@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WeChat Publish Workflow Config",
+  "type": "object",
+  "properties": {
+    "cover": {
+      "type": "object",
+      "description": "Step 1: 封面生成配置",
+      "properties": {
+        "autoGenerate": {
+          "type": "boolean",
+          "default": true,
+          "description": "未指定 --cover 时是否自动生成封面"
+        },
+        "skill": {
+          "type": "string",
+          "enum": ["image-gen", "gemini-web"],
+          "default": "image-gen",
+          "description": "封面生成使用的 skill: image-gen=baoyu-image-gen, gemini-web=baoyu-danger-gemini-web"
+        },
+        "provider": {
+          "type": "string",
+          "enum": ["google", "openai", "dashscope"],
+          "default": "google",
+          "description": "image-gen skill 的 AI provider（仅 skill=image-gen 时有效）"
+        },
+        "aspectRatio": {
+          "type": "string",
+          "default": "2.35:1",
+          "description": "封面宽高比（对应 baoyu-image-gen 的 --ar）"
+        },
+        "defaultPromptPrefix": {
+          "type": "string",
+          "default": "A modern, clean cover image for: ",
+          "description": "自动生成封面时的提示词前缀（拼接在文章标题前）"
+        }
+      }
+    },
+    "convert": {
+      "type": "object",
+      "description": "Step 2: Markdown → HTML 转换配置",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "enum": ["default", "grace", "simple"],
+          "default": "default",
+          "description": "Markdown 主题（传递给 baoyu-post-to-wechat 的 --theme）"
+        }
+      }
+    },
+    "publish": {
+      "type": "object",
+      "description": "Step 3: 发布配置",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["api", "browser", "remote"],
+          "default": "remote",
+          "description": "发布策略（传递给 baoyu-post-to-wechat 的 --method）"
+        }
+      }
+    }
+  }
+}

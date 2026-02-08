@@ -1,0 +1,36 @@
+# baoyu-skills 分类索引
+#
+# 所有 skill 保持 skills/baoyu-xxx 扁平目录结构（兼容上游），
+# 通过此文件建立逻辑分类。
+
+categories:
+  publish: # 📤 发布
+    description: 内容发布到各平台
+    skills:
+      - baoyu-post-to-wechat # 微信公众号
+      - baoyu-post-to-x # Twitter/X
+
+  content-transform: # 🔄 内容转换
+    description: 格式转换和处理
+    skills:
+      - baoyu-markdown-to-html # MD → HTML
+      - baoyu-format-markdown # MD 格式化
+      - baoyu-url-to-markdown # URL → MD
+      - baoyu-danger-x-to-markdown # 推文 → MD
+
+  image: # 🎨 图片生成
+    description: AI 图片生成和处理
+    skills:
+      - baoyu-image-gen # 通用图片生成 (Google/OpenAI/DashScope)
+      - baoyu-danger-gemini-web # Gemini Web 逆向 API
+      - baoyu-cover-image # 封面图
+      - baoyu-compress-image # 图片压缩
+      - baoyu-article-illustrator # 文章配图
+
+  visual-content: # 📊 视觉内容
+    description: 复合视觉内容生成
+    skills:
+      - baoyu-infographic # 信息图
+      - baoyu-xhs-images # 小红书图片
+      - baoyu-slide-deck # 幻灯片
+      - baoyu-comic # 漫画

@@ -4,7 +4,7 @@ import process from 'node:process';
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 
 import { GeminiClient, GeneratedImage, Model, type ModelOutput } from './gemini-webapi/index.js';
-import { resolveGeminiWebChromeProfileDir, resolveGeminiWebCookiePath, resolveGeminiWebSessionPath, resolveGeminiWebSessionsDir } from './gemini-webapi/utils/index.js';
+import { resolveGeminiWebChromeProfileDir, resolveGeminiWebCookiePath, resolveGeminiWebSessionPath, resolveGeminiWebSessionsDir, resolveGeminiWebAccountCookiePath, resolveGeminiWebAccountProfileDir, listGeminiWebAccounts } from './gemini-webapi/utils/index.js';
 
 type CliArgs = {
   prompt: string | null;
@@ -18,6 +18,8 @@ type CliArgs = {
   login: boolean;
   cookiePath: string | null;
   profileDir: string | null;
+  account: string | null;
+  listAccounts: boolean;
   help: boolean;
 };
 
@@ -80,6 +82,8 @@ Options:
   --ref <files...>          Alias for --reference
   --sessionId <id>          Session ID for multi-turn conversation (agent should generate unique ID)
   --list-sessions           List saved sessions (max 100, sorted by update time)
+  --account <name>          Use a named account (isolated cookies & Chrome profile)
+  --list-accounts           List saved accounts
   --login                   Only refresh cookies, then exit
   --cookie-path <path>      Cookie file path (default: ${cookiePath})
   --profile-dir <path>      Chrome profile dir (default: ${profileDir})
@@ -102,6 +106,8 @@ function parseArgs(argv: string[]): CliArgs {
     login: false,
     cookiePath: null,
     profileDir: null,
+    account: null,
+    listAccounts: false,
     help: false,
   };
 
@@ -134,6 +140,18 @@ function parseArgs(argv: string[]): CliArgs {
 
     if (a === '--list-sessions') {
       out.listSessions = true;
+      continue;
+    }
+
+    if (a === '--list-accounts') {
+      out.listAccounts = true;
+      continue;
+    }
+
+    if (a === '--account') {
+      const v = argv[++i];
+      if (!v) throw new Error('Missing value for --account');
+      out.account = v;
       continue;
     }
 
@@ -197,7 +215,7 @@ function parseArgs(argv: string[]): CliArgs {
         }
       }
 
-      out.imagePath = v && v.length > 0 ? v : 'generated.png';
+      out.imagePath = v && v.length > 0 ? v : 'generated-images/generated.png';
       continue;
     }
 
@@ -374,6 +392,16 @@ function formatJson(out: ModelOutput, extra?: Record<string, unknown>): string {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
+  // Fall back to env var if --account not specified on CLI
+  if (!args.account && process.env.GEMINI_WEB_DEFAULT_ACCOUNT) {
+    args.account = process.env.GEMINI_WEB_DEFAULT_ACCOUNT;
+  }
+
+  // Account-specific paths take priority over explicit cookie-path/profile-dir
+  if (args.account) {
+    if (!args.cookiePath) process.env.GEMINI_WEB_COOKIE_PATH = resolveGeminiWebAccountCookiePath(args.account);
+    if (!args.profileDir) process.env.GEMINI_WEB_CHROME_PROFILE_DIR = resolveGeminiWebAccountProfileDir(args.account);
+  }
   if (args.cookiePath) process.env.GEMINI_WEB_COOKIE_PATH = args.cookiePath;
   if (args.profileDir) process.env.GEMINI_WEB_CHROME_PROFILE_DIR = args.profileDir;
 
@@ -382,6 +410,17 @@ async function main(): Promise<void> {
 
   if (args.help) {
     printUsage(cookiePath, profileDir);
+    return;
+  }
+
+  if (args.listAccounts) {
+    const accounts = listGeminiWebAccounts();
+    if (accounts.length === 0) {
+      console.log('No saved accounts found. Use --account <name> --login to add one.');
+    } else {
+      console.log(`Saved accounts (${accounts.length}):`);
+      for (const a of accounts) console.log(`  ${a}`);
+    }
     return;
   }
 
@@ -401,8 +440,9 @@ async function main(): Promise<void> {
     const c = new GeminiClient();
     await c.init({ verbose: true });
     await c.close();
-    if (!args.json) console.log(`Cookie refreshed: ${cookiePath}`);
-    else console.log(JSON.stringify({ ok: true, cookiePath }, null, 2));
+    const label = args.account ? ` (account: ${args.account})` : '';
+    if (!args.json) console.log(`Cookie refreshed${label}: ${cookiePath}`);
+    else console.log(JSON.stringify({ ok: true, cookiePath, account: args.account }, null, 2));
     return;
   }
 

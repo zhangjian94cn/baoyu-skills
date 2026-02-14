@@ -1,6 +1,6 @@
 ---
 name: baoyu-post-to-wechat
-description: Posts content to WeChat Official Account (微信公众号) via API or Chrome CDP. Supports article posting (文章) with HTML, markdown, or plain text input, and image-text posting (图文) with multiple images. Use when user mentions "发布公众号", "post to wechat", "微信公众号", or "图文/文章".
+description: Posts content to WeChat Official Account (微信公众号) via API or Chrome CDP. Supports article posting (文章) with HTML, markdown, or plain text input, and image-text posting (贴图, formerly 图文) with multiple images. Use when user mentions "发布公众号", "post to wechat", "微信公众号", or "贴图/图文/文章".
 dependencies:
   required:
     - baoyu-markdown-to-html # Markdown → HTML 转换
@@ -151,6 +151,22 @@ scripts/
 
 > Markdown → HTML 转换由依赖 skill `baoyu-markdown-to-html` 提供。
 
+## Feature Comparison
+
+| Feature                                                        | Image-Text    | Article (API)  | Article (Browser) |
+| -------------------------------------------------------------- | ------------- | -------------- | ----------------- |
+| Plain text input                                               | ✅            | ✅             | ✅                |
+| HTML input                                                     | ✅            | ✅             | ✅                |
+| Markdown input                                                 | Title/content | ✅ (via skill) | ✅ (via skill)    |
+| Multiple images                                                | ✅ (up to 9)  | ✅ (inline)    | ✅ (inline)       |
+| Themes                                                         | ✅            | ✅             | ✅                |
+| Auto-generate metadata                                         | ✅            | ✅             | ✅                |
+| Default cover fallback (`imgs/cover.png`)                      | ✅            | ✅             | ✅                |
+| Comment control (`need_open_comment`, `only_fans_can_comment`) | ✅            | ✅             | ✅                |
+| Requires Chrome                                                | ✅            | ❌             | ✅                |
+| Requires API credentials                                       | ❌            | ✅             | ❌                |
+| Speed                                                          | Medium        | Fast           | Slow              |
+
 ## Prerequisites
 
 **For API method (recommended for servers)**:
@@ -170,15 +186,18 @@ scripts/
 
 ## Troubleshooting
 
-| Issue                   | Solution                                           |
-| ----------------------- | -------------------------------------------------- |
-| Missing API credentials | Set in `.env` or `~/.baoyu-skills/.env`            |
-| Access token error      | Check if API credentials are valid                 |
-| IP not in whitelist     | Add server IP to WeChat whitelist, or use `remote` |
-| SSH connection failed   | Check SSH config and key permissions               |
-| Remote server not setup | Run `npx -y bun setup-remote.ts`                   |
-| Not logged in (browser) | First run opens browser - scan QR to log in        |
-| Chrome not found        | Set `WECHAT_BROWSER_CHROME_PATH` env var           |
+| Issue                   | Solution                                                             |
+| ----------------------- | -------------------------------------------------------------------- |
+| Missing API credentials | Set in `.env` or `~/.baoyu-skills/.env`                              |
+| Access token error      | Check if API credentials are valid                                   |
+| IP not in whitelist     | Add server IP to WeChat whitelist, or use `remote`                   |
+| SSH connection failed   | Check SSH config and key permissions                                 |
+| Remote server not setup | Run `npx -y bun setup-remote.ts`                                     |
+| Not logged in (browser) | First run opens browser - scan QR to log in                          |
+| Chrome not found        | Set `WECHAT_BROWSER_CHROME_PATH` env var                             |
+| Title/summary missing   | Use auto-generation or provide manually                              |
+| No cover image          | Add frontmatter cover or place `imgs/cover.png` in article directory |
+| Wrong comment defaults  | Check config.json `need_open_comment` and `only_fans_can_comment`    |
 
 ## Detailed References
 

@@ -109,7 +109,7 @@ export async function publishArticle(options: ArticleOptions): Promise<void> {
     console.log(`[x-article] Reusing existing Chrome instance on port ${port}`);
   } else {
     console.log(`[x-article] Launching Chrome...`);
-    spawn(chromePath, [
+    const chromeArgs = [
       `--remote-debugging-port=${port}`,
       `--user-data-dir=${profileDir}`,
       '--no-first-run',
@@ -117,7 +117,13 @@ export async function publishArticle(options: ArticleOptions): Promise<void> {
       '--disable-blink-features=AutomationControlled',
       '--start-maximized',
       X_ARTICLES_URL,
-    ], { stdio: 'ignore' });
+    ];
+    if (process.platform === 'darwin') {
+      const appPath = chromePath.replace(/\/Contents\/MacOS\/Google Chrome$/, '');
+      spawn('open', ['-na', appPath, '--args', ...chromeArgs], { stdio: 'ignore' });
+    } else {
+      spawn(chromePath, chromeArgs, { stdio: 'ignore' });
+    }
   }
 
   let cdp: CdpConnection | null = null;
@@ -732,7 +738,8 @@ async function main(): Promise<void> {
     if (arg === '--title' && args[i + 1]) {
       title = args[++i];
     } else if (arg === '--cover' && args[i + 1]) {
-      coverImage = args[++i];
+      const raw = args[++i]!;
+      coverImage = path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
     } else if (arg === '--submit') {
       submit = true;
     } else if (arg === '--profile' && args[i + 1]) {

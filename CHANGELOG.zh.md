@@ -2,6 +2,36 @@
 
 [English](./CHANGELOG.md) | 中文
 
+## 1.32.0 - 2026-02-12
+
+### 新功能
+- `baoyu-danger-x-to-markdown`：新增 `--download-media` 参数，支持将图片/视频下载到本地并将 markdown 链接改写为相对路径；新增媒体本地化模块；新增首次使用 EXTEND.md 偏好设置；在 frontmatter 中输出 `coverImage`。
+
+### 重构
+- `baoyu-danger-x-to-markdown`：frontmatter 字段改为 camelCase（`tweetCount`、`coverImage`、`requestedUrl` 等）。
+- `baoyu-format-markdown`：将主 frontmatter 字段从 `featureImage` 更名为 `coverImage`（兼容 `featureImage`）。
+- `baoyu-post-to-wechat`：封面图片 frontmatter 查找顺序中优先使用 `coverImage`。
+
+## 1.31.2 - 2026-02-10
+
+### 修复
+- `baoyu-post-to-wechat`：修复 Windows 上 PowerShell 剪贴板复制失败的问题（`param()`/`-Path` 与 `-Command` 参数不兼容）。
+- `baoyu-post-to-x`：修复 Windows 上 PowerShell 剪贴板复制（同上）；修复 `getScriptDir()` 在 Windows 上返回无效路径（`/C:/...` 前缀）。
+
+## 1.31.1 - 2026-02-10
+
+### 新功能
+- `baoyu-post-to-wechat`：适配微信新版 UI — 图文更名为贴图；新增 ProseMirror 编辑器支持（兼容旧版编辑器）；新增备用文件上传选择器；新增上传进度监控；改进保存按钮检测并增加 toast 验证。
+
+### 修复
+- `baoyu-post-to-wechat`：摘要超过 120 字符时在标点处截断；修复封面图片相对路径解析。
+- `baoyu-post-to-x`：修复 macOS 上 Chrome 启动问题（使用 `open -na`）；修复封面图片相对路径解析。
+
+## 1.31.0 - 2026-02-07
+
+### 新功能
+- `baoyu-post-to-wechat`：新增评论控制设置（`need_open_comment`、`only_fans_can_comment`）；新增封面图片回退链（CLI → frontmatter → `imgs/cover.png` → 首张内联图片）；新增作者优先级解析；新增首次使用引导流程和 EXTEND.md 偏好配置。
+
 ## 1.30.3 - 2026-02-06
 
 ### 重构

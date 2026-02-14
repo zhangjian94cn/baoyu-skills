@@ -257,10 +257,15 @@ function renderContentBlocks(
   return lines;
 }
 
-export function formatArticleMarkdown(article: unknown): string {
+export type FormatArticleResult = {
+  markdown: string;
+  coverUrl: string | null;
+};
+
+export function formatArticleMarkdown(article: unknown): FormatArticleResult {
   const candidate = coerceArticleEntity(article);
   if (!candidate) {
-    return `\`\`\`json\n${JSON.stringify(article, null, 2)}\n\`\`\``;
+    return { markdown: `\`\`\`json\n${JSON.stringify(article, null, 2)}\n\`\`\``, coverUrl: null };
   }
 
   const lines: string[] = [];
@@ -271,10 +276,8 @@ export function formatArticleMarkdown(article: unknown): string {
     lines.push(`# ${title}`);
   }
 
-  const coverUrl = resolveMediaUrl(candidate.cover_media?.media_info);
+  const coverUrl = resolveMediaUrl(candidate.cover_media?.media_info) ?? null;
   if (coverUrl) {
-    if (lines.length > 0) lines.push("");
-    lines.push(`![](${coverUrl})`);
     usedUrls.add(coverUrl);
   }
 
@@ -294,7 +297,7 @@ export function formatArticleMarkdown(article: unknown): string {
     lines.push(candidate.preview_text.trim());
   }
 
-  const mediaUrls = collectMediaUrls(candidate, usedUrls, coverUrl);
+  const mediaUrls = collectMediaUrls(candidate, usedUrls, coverUrl ?? undefined);
   if (mediaUrls.length > 0) {
     lines.push("", "## Media", "");
     for (const url of mediaUrls) {
@@ -302,5 +305,5 @@ export function formatArticleMarkdown(article: unknown): string {
     }
   }
 
-  return lines.join("\n").trimEnd();
+  return { markdown: lines.join("\n").trimEnd(), coverUrl };
 }

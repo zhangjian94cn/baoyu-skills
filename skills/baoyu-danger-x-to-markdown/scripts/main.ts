@@ -6,6 +6,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 
 import { fetchXArticle } from "./graphql.js";
 import { formatArticleMarkdown } from "./markdown.js";
+import { localizeMarkdownMedia, type LocalizeMarkdownMediaResult } from "./media-localizer.js";
 import { hasRequiredXCookies, loadXCookies, refreshXCookies } from "./cookies.js";
 import { resolveXToMarkdownConsentPath } from "./paths.js";
 import { tweetToMarkdown } from "./tweet-to-markdown.js";
@@ -15,6 +16,7 @@ type CliArgs = {
   output: string | null;
   json: boolean;
   login: boolean;
+  downloadMedia: boolean;
   help: boolean;
 };
 
@@ -38,6 +40,7 @@ Usage:
 Options:
   --output <path>, -o  Output path (file or dir). Default: ./x-to-markdown/<slug>/
   --json               Output as JSON
+  --download-media     Download images/videos to local ./imgs and ./videos next to markdown
   --login              Refresh cookies only, then exit
   --help, -h           Show help
 
@@ -45,6 +48,7 @@ Examples:
   ${cmd} https://x.com/username/status/1234567890
   ${cmd} https://x.com/i/article/1234567890 -o ./article.md
   ${cmd} https://x.com/username/status/1234567890 -o ./out/
+  ${cmd} https://x.com/username/status/1234567890 --download-media
   ${cmd} https://x.com/username/status/1234567890 --json | jq -r '.markdownPath'
   ${cmd} --login
 `);
@@ -57,6 +61,7 @@ function parseArgs(argv: string[]): CliArgs {
     output: null,
     json: false,
     login: false,
+    downloadMedia: false,
     help: false,
   };
 
@@ -77,6 +82,11 @@ function parseArgs(argv: string[]): CliArgs {
 
     if (a === "--login") {
       out.login = true;
+      continue;
+    }
+
+    if (a === "--download-media") {
+      out.downloadMedia = true;
       continue;
     }
 
@@ -345,16 +355,17 @@ async function convertArticleToMarkdown(
 
   log(`[x-to-markdown] Fetching article ${articleId}...`);
   const article = await fetchXArticle(articleId, cookieMap, false);
-  const body = formatArticleMarkdown(article).trimEnd();
+  const { markdown: body, coverUrl } = formatArticleMarkdown(article);
 
   const title = typeof (article as any)?.title === "string" ? String((article as any).title).trim() : "";
   const meta = formatMetaMarkdown({
     url: `https://x.com/i/article/${articleId}`,
-    requested_url: inputUrl,
+    requestedUrl: inputUrl,
     title: title || null,
+    coverImage: coverUrl,
   });
 
-  return [meta, body].filter(Boolean).join("\n\n").trimEnd();
+  return [meta, body.trimEnd()].filter(Boolean).join("\n\n").trimEnd();
 }
 
 async function main(): Promise<void> {
@@ -385,10 +396,23 @@ async function main(): Promise<void> {
   const kind = articleId ? ("article" as const) : ("tweet" as const);
   const { outputDir, markdownPath, slug } = await resolveOutputPath(normalizedUrl, kind, args.output, log);
 
-  const markdown =
+  let markdown =
     kind === "article" && articleId
       ? await convertArticleToMarkdown(normalizedUrl, articleId, log)
       : await tweetToMarkdown(normalizedUrl, { log });
+
+  let mediaResult: LocalizeMarkdownMediaResult | null = null;
+
+  if (args.downloadMedia) {
+    mediaResult = await localizeMarkdownMedia(markdown, {
+      markdownPath,
+      log,
+    });
+    markdown = mediaResult.markdown;
+    log(
+      `[x-to-markdown] Media localized: images=${mediaResult.downloadedImages}, videos=${mediaResult.downloadedVideos}`
+    );
+  }
 
   await writeFile(markdownPath, markdown, "utf8");
   log(`[x-to-markdown] Saved: ${markdownPath}`);
@@ -398,11 +422,16 @@ async function main(): Promise<void> {
       JSON.stringify(
         {
           url: articleId ? `https://x.com/i/article/${articleId}` : normalizedUrl,
-          requested_url: normalizedUrl,
+          requestedUrl: normalizedUrl,
           type: kind,
           slug,
           outputDir,
           markdownPath,
+          downloadMedia: args.downloadMedia,
+          downloadedImages: mediaResult?.downloadedImages ?? 0,
+          downloadedVideos: mediaResult?.downloadedVideos ?? 0,
+          imageDir: mediaResult?.imageDir ?? null,
+          videoDir: mediaResult?.videoDir ?? null,
         },
         null,
         2

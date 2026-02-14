@@ -123,22 +123,15 @@ export async function tweetToMarkdown(
   const requestedUrl = normalizedUrl || buildTweetUrl(username, tweetId) || inputUrl.trim();
   const rootUrl = buildTweetUrl(username, thread.rootId ?? tweetId) ?? requestedUrl;
 
-  const meta = formatMetaMarkdown({
-    url: rootUrl,
-    requested_url: requestedUrl,
-    author,
-    author_name: name ?? null,
-    author_username: username ?? null,
-    author_url: authorUrl ?? null,
-    tweet_count: thread.totalTweets ?? tweets.length,
-  });
-
-  const parts: string[] = [meta];
-
   const articleEntity = await resolveArticleEntityFromTweet(firstTweet, cookieMap);
+  let coverImage: string | null = null;
   let remainingTweets = tweets;
+  const parts: string[] = [];
+
   if (articleEntity) {
-    const articleMarkdown = formatArticleMarkdown(articleEntity).trimEnd();
+    const articleResult = formatArticleMarkdown(articleEntity);
+    coverImage = articleResult.coverUrl;
+    const articleMarkdown = articleResult.markdown.trimEnd();
     if (articleMarkdown) {
       parts.push(articleMarkdown);
       const firstTweetText = extractTweetText(firstTweet);
@@ -147,6 +140,19 @@ export async function tweetToMarkdown(
       }
     }
   }
+
+  const meta = formatMetaMarkdown({
+    url: rootUrl,
+    requestedUrl: requestedUrl,
+    author,
+    authorName: name ?? null,
+    authorUsername: username ?? null,
+    authorUrl: authorUrl ?? null,
+    tweetCount: thread.totalTweets ?? tweets.length,
+    coverImage,
+  });
+
+  parts.unshift(meta);
 
   if (remainingTweets.length > 0) {
     const hasArticle = parts.length > 1;

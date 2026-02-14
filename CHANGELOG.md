@@ -2,6 +2,36 @@
 
 English | [中文](./CHANGELOG.zh.md)
 
+## 1.32.0 - 2026-02-12
+
+### Features
+- `baoyu-danger-x-to-markdown`: add `--download-media` flag to download images/videos locally and rewrite markdown links to relative paths; add media localization module; add first-time setup with EXTEND.md preferences; add `coverImage` to frontmatter output.
+
+### Refactor
+- `baoyu-danger-x-to-markdown`: use camelCase for frontmatter keys (`tweetCount`, `coverImage`, `requestedUrl`, etc.).
+- `baoyu-format-markdown`: rename `featureImage` to `coverImage` as primary frontmatter key (with `featureImage` as accepted alias).
+- `baoyu-post-to-wechat`: prioritize `coverImage` over `featureImage` in cover image frontmatter lookup order.
+
+## 1.31.2 - 2026-02-10
+
+### Fixes
+- `baoyu-post-to-wechat`: fix PowerShell clipboard copy failing on Windows due to `param()`/`-Path` not working with `-Command`.
+- `baoyu-post-to-x`: fix PowerShell clipboard copy on Windows (same issue); fix `getScriptDir()` returning invalid path on Windows (`/C:/...` prefix).
+
+## 1.31.1 - 2026-02-10
+
+### Features
+- `baoyu-post-to-wechat`: adapt to new WeChat UI — rename 图文 to 贴图; add ProseMirror editor support with old editor fallback; add fallback file input selector; add upload progress monitoring; improve save button detection with toast verification.
+
+### Fixes
+- `baoyu-post-to-wechat`: truncate digest > 120 chars at punctuation boundary; fix cover image relative path resolution.
+- `baoyu-post-to-x`: fix Chrome launch on macOS via `open -na`; fix cover image relative path resolution.
+
+## 1.31.0 - 2026-02-07
+
+### Features
+- `baoyu-post-to-wechat`: add comment control settings (`need_open_comment`, `only_fans_can_comment`); add cover image fallback chain (CLI → frontmatter → `imgs/cover.png` → first inline image); add author resolution priority; add first-time setup flow with EXTEND.md preferences.
+
 ## 1.30.3 - 2026-02-06
 
 ### Refactor

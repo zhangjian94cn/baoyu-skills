@@ -127,7 +127,7 @@ Check for YAML frontmatter (`---` block). Create if missing.
 | `title` | See Step 4 |
 | `slug` | Infer from file path (e.g., `posts/2026/01/10/vibe-coding/` → `vibe-coding`) or generate from title |
 | `summary` | Generate engaging summary (100-150 characters) |
-| `featureImage` | Check if `imgs/cover.png` exists in same directory; if so, use relative path |
+| `coverImage` | Check if `imgs/cover.png` exists in same directory; if so, use relative path (also accepted: `featureImage`) |
 
 ### Step 4: Title Handling
 

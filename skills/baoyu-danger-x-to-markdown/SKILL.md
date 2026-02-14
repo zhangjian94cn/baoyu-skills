@@ -92,16 +92,52 @@ test -f "$HOME/.baoyu-skills/baoyu-danger-x-to-markdown/EXTEND.md" && echo "user
 ├───────────┼───────────────────────────────────────────────────────────────────────────┤
 │ Found     │ Read, parse, apply settings                                               │
 ├───────────┼───────────────────────────────────────────────────────────────────────────┤
-│ Not found │ Use defaults                                                              │
+│ Not found │ **MUST** run first-time setup (see below) — do NOT silently create defaults │
 └───────────┴───────────────────────────────────────────────────────────────────────────┘
 
-**EXTEND.md Supports**: Default output directory | Output format preferences
+**EXTEND.md Supports**: Download media by default | Default output directory
+
+### First-Time Setup (BLOCKING)
+
+**CRITICAL**: When EXTEND.md is not found, you **MUST use `AskUserQuestion`** to ask the user for their preferences before creating EXTEND.md. **NEVER** create EXTEND.md with defaults without asking. This is a **BLOCKING** operation — do NOT proceed with any conversion until setup is complete.
+
+Use `AskUserQuestion` with ALL questions in ONE call:
+
+**Question 1** — header: "Media", question: "How to handle images and videos in tweets?"
+- "Ask each time (Recommended)" — After saving markdown, ask whether to download media
+- "Always download" — Always download media to local imgs/ and videos/ directories
+- "Never download" — Keep original remote URLs in markdown
+
+**Question 2** — header: "Output", question: "Default output directory?"
+- "x-to-markdown (Recommended)" — Save to ./x-to-markdown/{username}/{tweet-id}.md
+- (User may choose "Other" to type a custom path)
+
+**Question 3** — header: "Save", question: "Where to save preferences?"
+- "User (Recommended)" — ~/.baoyu-skills/ (all projects)
+- "Project" — .baoyu-skills/ (this project only)
+
+After user answers, create EXTEND.md at the chosen location, confirm "Preferences saved to [path]", then continue.
+
+Full reference: [references/config/first-time-setup.md](references/config/first-time-setup.md)
+
+### Supported Keys
+
+| Key | Default | Values | Description |
+|-----|---------|--------|-------------|
+| `download_media` | `ask` | `ask` / `1` / `0` | `ask` = prompt each time, `1` = always download, `0` = never |
+| `default_output_dir` | empty | path or empty | Default output directory (empty = `./x-to-markdown/`) |
+
+**Value priority**:
+1. CLI arguments (`--download-media`, `-o`)
+2. EXTEND.md
+3. Skill defaults
 
 ## Usage
 
 ```bash
 npx -y bun ${SKILL_DIR}/scripts/main.ts <url>
 npx -y bun ${SKILL_DIR}/scripts/main.ts <url> -o output.md
+npx -y bun ${SKILL_DIR}/scripts/main.ts <url> --download-media
 npx -y bun ${SKILL_DIR}/scripts/main.ts <url> --json
 ```
 
@@ -112,6 +148,7 @@ npx -y bun ${SKILL_DIR}/scripts/main.ts <url> --json
 | `<url>` | Tweet or article URL |
 | `-o <path>` | Output path |
 | `--json` | JSON output |
+| `--download-media` | Download image/video assets to local `imgs/` and `videos/`, and rewrite markdown links to local relative paths |
 | `--login` | Refresh cookies only |
 
 ## Supported URLs
@@ -124,15 +161,42 @@ npx -y bun ${SKILL_DIR}/scripts/main.ts <url> --json
 
 ```markdown
 ---
-url: https://x.com/user/status/123
+url: "https://x.com/user/status/123"
 author: "Name (@user)"
-tweet_count: 3
+tweetCount: 3
+coverImage: "https://pbs.twimg.com/media/example.jpg"
 ---
 
 Content...
 ```
 
 **File structure**: `x-to-markdown/{username}/{tweet-id}.md`
+
+When `--download-media` is enabled:
+- Images are saved to `imgs/` next to the markdown file
+- Videos are saved to `videos/` next to the markdown file
+- Markdown media links are rewritten to local relative paths
+
+## Media Download Workflow
+
+Based on `download_media` setting in EXTEND.md:
+
+| Setting | Behavior |
+|---------|----------|
+| `1` (always) | Run script with `--download-media` flag |
+| `0` (never) | Run script without `--download-media` flag |
+| `ask` (default) | Follow the ask-each-time flow below |
+
+### Ask-Each-Time Flow
+
+1. Run script **without** `--download-media` → markdown saved
+2. Check saved markdown for remote media URLs (`https://` in image/video links)
+3. **If no remote media found** → done, no prompt needed
+4. **If remote media found** → use `AskUserQuestion`:
+   - header: "Media", question: "Download N images/videos to local files?"
+   - "Yes" — Download to local directories
+   - "No" — Keep remote URLs
+5. If user confirms → run script **again** with `--download-media` (overwrites markdown with localized links)
 
 ## Authentication
 

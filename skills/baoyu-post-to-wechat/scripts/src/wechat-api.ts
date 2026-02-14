@@ -388,7 +388,7 @@ Frontmatter Fields (markdown):
   title               Article title
   author              Author name
   digest/summary      Article summary
-  featureImage/coverImage/cover/image   Cover image path
+  coverImage/featureImage/cover/image   Cover image path
 
 Comments:
   Comments are enabled by default, open to all users.
@@ -541,6 +541,13 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  if (digest && digest.length > 120) {
+    const truncated = digest.slice(0, 117);
+    const lastPunct = Math.max(truncated.lastIndexOf("。"), truncated.lastIndexOf("，"), truncated.lastIndexOf("；"), truncated.lastIndexOf("、"));
+    digest = lastPunct > 80 ? truncated.slice(0, lastPunct + 1) : truncated + "...";
+    console.error(`[wechat-api] Digest truncated to ${digest.length} chars`);
+  }
+
   console.error(`[wechat-api] Title: ${title}`);
   if (author) console.error(`[wechat-api] Author: ${author}`);
   if (digest) console.error(`[wechat-api] Digest: ${digest.slice(0, 50)}...`);
@@ -571,11 +578,14 @@ async function main(): Promise<void> {
   htmlContent = processedHtml;
 
   let thumbMediaId = "";
-  const coverPath = args.cover ||
-    frontmatter.featureImage ||
+  const rawCoverPath = args.cover ||
     frontmatter.coverImage ||
+    frontmatter.featureImage ||
     frontmatter.cover ||
     frontmatter.image;
+  const coverPath = rawCoverPath && !path.isAbsolute(rawCoverPath) && args.cover
+    ? path.resolve(process.cwd(), rawCoverPath)
+    : rawCoverPath;
 
   if (coverPath) {
     console.error(`[wechat-api] Uploading cover: ${coverPath}`);
@@ -592,7 +602,7 @@ async function main(): Promise<void> {
   }
 
   if (args.articleType === "news" && !thumbMediaId) {
-    console.error("Error: No cover image. Provide via --cover, frontmatter.featureImage, or include an image in content.");
+    console.error("Error: No cover image. Provide via --cover, frontmatter.coverImage, or include an image in content.");
     process.exit(1);
   }
 

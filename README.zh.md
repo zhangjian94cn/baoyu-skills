@@ -519,12 +519,12 @@ npx skills add jimliu/baoyu-skills
 
 发布内容到微信公众号，支持两种模式：
 
-**图文模式** - 多图配短标题和正文：
+**贴图模式** - 多图配短标题和正文：
 
 ```bash
-/baoyu-post-to-wechat 图文 --markdown article.md --images ./photos/
-/baoyu-post-to-wechat 图文 --markdown article.md --image img1.png --image img2.png --image img3.png
-/baoyu-post-to-wechat 图文 --title "标题" --content "内容" --image img1.png --submit
+/baoyu-post-to-wechat 贴图 --markdown article.md --images ./photos/
+/baoyu-post-to-wechat 贴图 --markdown article.md --image img1.png --image img2.png --image img3.png
+/baoyu-post-to-wechat 贴图 --title "标题" --content "内容" --image img1.png --submit
 ```
 
 **文章模式** - 完整 markdown/HTML 富文本格式：
@@ -681,6 +681,9 @@ AI 驱动的生成后端。
 
 # JSON 输出
 /baoyu-danger-x-to-markdown https://x.com/username/status/123456 --json
+
+# 下载媒体文件（图片/视频）到本地
+/baoyu-danger-x-to-markdown https://x.com/username/status/123456 --download-media
 ```
 
 **支持的 URL：**
@@ -713,7 +716,7 @@ AI 驱动的生成后端。
 
 **工作流程**：
 1. 读取源文件并分析内容结构
-2. 检查/创建 YAML frontmatter（title、slug、summary、featureImage）
+2. 检查/创建 YAML frontmatter（title、slug、summary、coverImage）
 3. 处理标题：使用现有标题、提取 H1 或生成候选标题
 4. 应用格式：层级标题、加粗、列表、代码块、引用
 5. 保存为 `{文件名}-formatted.md`
@@ -725,7 +728,7 @@ AI 驱动的生成后端。
 | `title` | 使用现有、提取 H1 或生成候选 |
 | `slug` | 从文件路径推断或根据标题生成 |
 | `summary` | 生成吸引人的摘要（100-150 字） |
-| `featureImage` | 检查同目录下 `imgs/cover.png` |
+| `coverImage` | 检查同目录下 `imgs/cover.png` |
 
 **格式化规则**：
 | 元素 | 格式 |

@@ -22,6 +22,8 @@ Options:
   --imageSize 1K|2K|4K      Image size for Google (default: from quality)
   --ref <files...>          Reference images (Google multimodal or OpenAI edits)
   --n <count>               Number of images (default: 1)
+  --person-gen <mode>        Person generation: allow_adult (default), allow_all, dont_allow
+  --google-search            Enable Google Search for context-aware generation
   --json                    JSON output
   -h, --help                Show help
 
@@ -55,6 +57,8 @@ function parseArgs(argv: string[]): CliArgs {
     n: 1,
     json: false,
     help: false,
+    personGeneration: null,
+    googleSearch: false,
   };
 
   const positional: string[] = [];
@@ -161,6 +165,20 @@ function parseArgs(argv: string[]): CliArgs {
       if (!v) throw new Error("Missing value for --n");
       out.n = parseInt(v, 10);
       if (isNaN(out.n) || out.n < 1) throw new Error(`Invalid count: ${v}`);
+      continue;
+    }
+
+    if (a === "--person-gen") {
+      const v = argv[++i];
+      if (v !== "allow_adult" && v !== "allow_all" && v !== "dont_allow") {
+        throw new Error(`Invalid person-gen value: ${v}. Use: allow_adult, allow_all, dont_allow`);
+      }
+      out.personGeneration = v;
+      continue;
+    }
+
+    if (a === "--google-search") {
+      out.googleSearch = true;
       continue;
     }
 

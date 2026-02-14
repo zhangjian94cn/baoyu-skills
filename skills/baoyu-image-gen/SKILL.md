@@ -10,6 +10,7 @@ Official API-based image generation. Supports OpenAI, Google and DashScope (阿�
 ## Script Directory
 
 **Agent Execution**:
+
 1. `SKILL_DIR` = this SKILL.md file's directory
 2. Script path = `${SKILL_DIR}/scripts/main.ts`
 
@@ -26,19 +27,19 @@ test -f "$HOME/.baoyu-skills/baoyu-image-gen/EXTEND.md" && echo "user"
 ```
 
 ┌──────────────────────────────────────────────────┬───────────────────┐
-│                       Path                       │     Location      │
+│ Path │ Location │
 ├──────────────────────────────────────────────────┼───────────────────┤
-│ .baoyu-skills/baoyu-image-gen/EXTEND.md          │ Project directory │
+│ .baoyu-skills/baoyu-image-gen/EXTEND.md │ Project directory │
 ├──────────────────────────────────────────────────┼───────────────────┤
-│ $HOME/.baoyu-skills/baoyu-image-gen/EXTEND.md    │ User home         │
+│ $HOME/.baoyu-skills/baoyu-image-gen/EXTEND.md │ User home │
 └──────────────────────────────────────────────────┴───────────────────┘
 
 ┌───────────┬───────────────────────────────────────────────────────────────────────────┐
-│  Result   │                                  Action                                   │
+│ Result │ Action │
 ├───────────┼───────────────────────────────────────────────────────────────────────────┤
-│ Found     │ Read, parse, apply settings                                               │
+│ Found │ Read, parse, apply settings │
 ├───────────┼───────────────────────────────────────────────────────────────────────────┤
-│ Not found │ Use defaults                                                              │
+│ Not found │ Use defaults │
 └───────────┴───────────────────────────────────────────────────────────────────────────┘
 
 **EXTEND.md Supports**: Default provider | Default quality | Default aspect ratio | Default image size | Default models
@@ -71,38 +72,46 @@ npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "A cat" --image out.png --provi
 
 # DashScope (阿里通义万象)
 npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "一只可爱的猫" --image out.png --provider dashscope
+
+# With person generation allowed
+npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "A portrait photo" --image out.png --person-gen allow_adult
+
+# With Google Search for context-aware generation
+npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "Latest iPhone design" --image out.png --google-search
 ```
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--prompt <text>`, `-p` | Prompt text |
-| `--promptfiles <files...>` | Read prompt from files (concatenated) |
-| `--image <path>` | Output image path (required) |
-| `--provider google\|openai\|dashscope` | Force provider (default: google) |
-| `--model <id>`, `-m` | Model ID (`--ref` with OpenAI requires GPT Image model, e.g. `gpt-image-1.5`) |
-| `--ar <ratio>` | Aspect ratio (e.g., `16:9`, `1:1`, `4:3`) |
-| `--size <WxH>` | Size (e.g., `1024x1024`) |
-| `--quality normal\|2k` | Quality preset (default: 2k) |
-| `--imageSize 1K\|2K\|4K` | Image size for Google (default: from quality) |
-| `--ref <files...>` | Reference images. Supported by Google multimodal and OpenAI edits (GPT Image models). If provider omitted: Google first, then OpenAI |
-| `--n <count>` | Number of images |
-| `--json` | JSON output |
+| Option                                 | Description                                                                                                                          |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `--prompt <text>`, `-p`                | Prompt text                                                                                                                          |
+| `--promptfiles <files...>`             | Read prompt from files (concatenated)                                                                                                |
+| `--image <path>`                       | Output image path (required)                                                                                                         |
+| `--provider google\|openai\|dashscope` | Force provider (default: google)                                                                                                     |
+| `--model <id>`, `-m`                   | Model ID (`--ref` with OpenAI requires GPT Image model, e.g. `gpt-image-1.5`)                                                        |
+| `--ar <ratio>`                         | Aspect ratio (e.g., `16:9`, `1:1`, `4:3`)                                                                                            |
+| `--size <WxH>`                         | Size (e.g., `1024x1024`)                                                                                                             |
+| `--quality normal\|2k`                 | Quality preset (default: 2k)                                                                                                         |
+| `--imageSize 1K\|2K\|4K`               | Image size for Google (default: from quality)                                                                                        |
+| `--ref <files...>`                     | Reference images. Supported by Google multimodal and OpenAI edits (GPT Image models). If provider omitted: Google first, then OpenAI |
+| `--n <count>`                          | Number of images                                                                                                                     |
+| `--person-gen <mode>`                  | Person generation: `allow_adult` (default), `allow_all`, `dont_allow`                                                                |
+| `--google-search`                      | Enable Google Search for context-aware generation (Gemini only)                                                                      |
+| `--json`                               | JSON output                                                                                                                          |
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `OPENAI_API_KEY` | OpenAI API key |
-| `GOOGLE_API_KEY` | Google API key |
-| `DASHSCOPE_API_KEY` | DashScope API key (阿里云) |
-| `OPENAI_IMAGE_MODEL` | OpenAI model override |
-| `GOOGLE_IMAGE_MODEL` | Google model override |
+| Variable                | Description                                       |
+| ----------------------- | ------------------------------------------------- |
+| `OPENAI_API_KEY`        | OpenAI API key                                    |
+| `GOOGLE_API_KEY`        | Google API key                                    |
+| `DASHSCOPE_API_KEY`     | DashScope API key (阿里云)                        |
+| `OPENAI_IMAGE_MODEL`    | OpenAI model override                             |
+| `GOOGLE_IMAGE_MODEL`    | Google model override                             |
 | `DASHSCOPE_IMAGE_MODEL` | DashScope model override (default: z-image-turbo) |
-| `OPENAI_BASE_URL` | Custom OpenAI endpoint |
-| `GOOGLE_BASE_URL` | Custom Google endpoint |
-| `DASHSCOPE_BASE_URL` | Custom DashScope endpoint |
+| `OPENAI_BASE_URL`       | Custom OpenAI endpoint                            |
+| `GOOGLE_BASE_URL`       | Custom Google endpoint                            |
+| `DASHSCOPE_BASE_URL`    | Custom DashScope endpoint                         |
 
 **Load Priority**: CLI args > EXTEND.md > env vars > `<cwd>/.baoyu-skills/.env` > `~/.baoyu-skills/.env`
 
@@ -115,10 +124,10 @@ npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "一只可爱的猫" --image ou
 
 ## Quality Presets
 
-| Preset | Google imageSize | OpenAI Size | Use Case |
-|--------|------------------|-------------|----------|
-| `normal` | 1K | 1024px | Quick previews |
-| `2k` (default) | 2K | 2048px | Covers, illustrations, infographics |
+| Preset         | Google imageSize | OpenAI Size | Use Case                            |
+| -------------- | ---------------- | ----------- | ----------------------------------- |
+| `normal`       | 1K               | 1024px      | Quick previews                      |
+| `2k` (default) | 2K               | 2048px      | Covers, illustrations, infographics |
 
 **Google imageSize**: Can be overridden with `--imageSize 1K|2K|4K`
 
@@ -136,20 +145,21 @@ Supported: `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `2.35:1`
 
 **Parallel Generation**: Only use when user explicitly requests parallel/concurrent generation.
 
-| Mode | When to Use |
-|------|-------------|
-| Sequential (default) | Normal usage, single images, small batches |
-| Parallel | User explicitly requests, large batches (10+) |
+| Mode                 | When to Use                                   |
+| -------------------- | --------------------------------------------- |
+| Sequential (default) | Normal usage, single images, small batches    |
+| Parallel             | User explicitly requests, large batches (10+) |
 
 **Parallel Settings** (when requested):
 
-| Setting | Value |
-|---------|-------|
-| Recommended concurrency | 4 subagents |
-| Max concurrency | 8 subagents |
-| Use case | Large batch generation when user requests parallel |
+| Setting                 | Value                                              |
+| ----------------------- | -------------------------------------------------- |
+| Recommended concurrency | 4 subagents                                        |
+| Max concurrency         | 8 subagents                                        |
+| Use case                | Large batch generation when user requests parallel |
 
 **Agent Implementation** (parallel mode only):
+
 ```
 # Launch multiple generations in parallel using Task tool
 # Each Task runs as background subagent with run_in_background=true

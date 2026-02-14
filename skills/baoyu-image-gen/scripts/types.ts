@@ -1,6 +1,8 @@
 export type Provider = "google" | "openai" | "dashscope";
 export type Quality = "normal" | "2k";
 
+export type PersonGeneration = "allow_adult" | "allow_all" | "dont_allow";
+
 export type CliArgs = {
   prompt: string | null;
   promptFiles: string[];
@@ -15,6 +17,8 @@ export type CliArgs = {
   n: number;
   json: boolean;
   help: boolean;
+  personGeneration: PersonGeneration | null;
+  googleSearch: boolean;
 };
 
 export type ExtendConfig = {

@@ -133,22 +133,31 @@ async function generateWithGemini(
   model: string,
   args: CliArgs
 ): Promise<Uint8Array> {
-  const promptWithAspect = addAspectRatioToPrompt(prompt, args.aspectRatio);
+  const promptText = args.referenceImages.length > 0 ? prompt : addAspectRatioToPrompt(prompt, args.aspectRatio);
   const parts: Array<{ text?: string; inlineData?: { data: string; mimeType: string } }> = [];
   for (const refPath of args.referenceImages) {
     const { data, mimeType } = await readImageAsBase64(refPath);
     parts.push({ inlineData: { data, mimeType } });
   }
-  parts.push({ text: promptWithAspect });
+  parts.push({ text: promptText });
 
-  const imageConfig: { imageSize: "1K" | "2K" | "4K" } = {
+  const imageConfig: Record<string, unknown> = {
     imageSize: getGoogleImageSize(args),
   };
+  if (args.aspectRatio) {
+    imageConfig.aspectRatio = args.aspectRatio;
+  }
 
-  console.log("Generating image with Gemini...", imageConfig);
-  const response = await postGoogleJson<{
-    candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { data?: string } }> } }>;
-  }>(`${toModelPath(model)}:generateContent`, {
+  // personGeneration is not supported in REST API imageConfig,
+  // but is informational in the prompt
+  let finalPromptText = promptText;
+  if (args.personGeneration === "dont_allow") {
+    finalPromptText += " Do not include any people or human figures in the image.";
+  }
+
+  parts[parts.length - 1] = { text: finalPromptText };
+
+  const requestBody: Record<string, unknown> = {
     contents: [
       {
         role: "user",
@@ -159,7 +168,19 @@ async function generateWithGemini(
       responseModalities: ["IMAGE"],
       imageConfig,
     },
-  });
+  };
+
+  // Add Google Search tool if enabled
+  if (args.googleSearch) {
+    requestBody.tools = [{ google_search: {} }];
+    // Also include TEXT in response modalities when search is enabled
+    (requestBody.generationConfig as Record<string, unknown>).responseModalities = ["IMAGE", "TEXT"];
+  }
+
+  console.log("Generating image with Gemini...", imageConfig);
+  const response = await postGoogleJson<{
+    candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { data?: string }; text?: string }> } }>;
+  }>(`${toModelPath(model)}:generateContent`, requestBody);
   console.log("Generation completed.");
 
   const imageData = extractInlineImageData(response);

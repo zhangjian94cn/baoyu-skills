@@ -14,13 +14,20 @@
         },
         "skill": {
           "type": "string",
-          "enum": ["image-gen", "gemini-web"],
+          "enum": [
+            "image-gen",
+            "gemini-web"
+          ],
           "default": "image-gen",
           "description": "封面生成使用的 skill: image-gen=baoyu-image-gen, gemini-web=baoyu-danger-gemini-web"
         },
         "provider": {
           "type": "string",
-          "enum": ["google", "openai", "dashscope"],
+          "enum": [
+            "google",
+            "openai",
+            "dashscope"
+          ],
           "default": "google",
           "description": "image-gen skill 的 AI provider（仅 skill=image-gen 时有效）"
         },
@@ -36,13 +43,61 @@
         }
       }
     },
+    "inlineImages": {
+      "type": "object",
+      "description": "Step 1.5: 正文插图生成配置",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否启用正文 image-gen 块自动生成"
+        },
+        "skill": {
+          "type": "string",
+          "enum": [
+            "image-gen",
+            "gemini-web"
+          ],
+          "default": "image-gen",
+          "description": "插图生成使用的 skill"
+        },
+        "provider": {
+          "type": "string",
+          "enum": [
+            "google",
+            "openai",
+            "dashscope"
+          ],
+          "default": "google",
+          "description": "默认 AI provider"
+        },
+        "defaultAspectRatio": {
+          "type": "string",
+          "default": "4:3",
+          "description": "插图默认宽高比（image-gen 块未指定 ar 时使用）"
+        },
+        "quality": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "2k"
+          ],
+          "default": "2k",
+          "description": "默认图片质量"
+        }
+      }
+    },
     "convert": {
       "type": "object",
       "description": "Step 2: Markdown → HTML 转换配置",
       "properties": {
         "theme": {
           "type": "string",
-          "enum": ["default", "grace", "simple"],
+          "enum": [
+            "default",
+            "grace",
+            "simple"
+          ],
           "default": "default",
           "description": "Markdown 主题（传递给 baoyu-post-to-wechat 的 --theme）"
         }
@@ -54,7 +109,11 @@
       "properties": {
         "method": {
           "type": "string",
-          "enum": ["api", "browser", "remote"],
+          "enum": [
+            "api",
+            "browser",
+            "remote"
+          ],
           "default": "remote",
           "description": "发布策略（传递给 baoyu-post-to-wechat 的 --method）"
         }

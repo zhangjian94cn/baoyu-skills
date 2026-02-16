@@ -114,6 +114,8 @@ export interface RemoteConfig {
 
 /**
  * 加载远程服务器配置
+ *
+ * 优先级：config.json remote > .env > 默认值
  */
 export function loadRemoteConfig(projectRoot: string): RemoteConfig {
   const config: RemoteConfig = {
@@ -122,6 +124,16 @@ export function loadRemoteConfig(projectRoot: string): RemoteConfig {
     bunPath: "~/.bun/bin/bun",
   };
 
+  // 1. 从 config.json 读取（最高优先级）
+  const scriptDir = path.join(projectRoot, "skills", "baoyu-post-to-wechat", "scripts");
+  const jsonConfig = loadJsonConfig(scriptDir);
+  if (jsonConfig?.remote) {
+    if (jsonConfig.remote.host) config.remoteHost = jsonConfig.remote.host;
+    if (jsonConfig.remote.dir) config.remoteDir = jsonConfig.remote.dir;
+    if (jsonConfig.remote.bunPath) config.bunPath = jsonConfig.remote.bunPath;
+  }
+
+  // 2. 从 .env 文件读取（可覆盖 config.json 的值）
   for (const configPath of getEnvPaths(projectRoot)) {
     const env = loadEnvFile(configPath);
     if (env.REMOTE_SERVER_HOST) config.remoteHost = env.REMOTE_SERVER_HOST;
@@ -187,7 +199,7 @@ export function loadApiKey(projectRoot: string): string {
   }
   throw new Error(
     "Missing GEMINI_API_KEY.\n" +
-      "Get your key at https://aistudio.google.com/apikey\n" +
-      "Set via environment variable or in .env file."
+    "Get your key at https://aistudio.google.com/apikey\n" +
+    "Set via environment variable or in .env file."
   );
 }

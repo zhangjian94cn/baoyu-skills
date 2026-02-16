@@ -47,6 +47,13 @@ interface WorkflowConfig {
     aspectRatio: string;
     defaultPromptPrefix: string;
   };
+  inlineImages: {
+    enabled: boolean;
+    skill: string;
+    provider: string;
+    defaultAspectRatio: string;
+    quality: string;
+  };
   convert: {
     theme: string;
   };
@@ -63,6 +70,13 @@ const DEFAULT_CONFIG: WorkflowConfig = {
     aspectRatio: "2.35:1",
     defaultPromptPrefix: "A modern, clean cover image for: ",
   },
+  inlineImages: {
+    enabled: true,
+    skill: "image-gen",
+    provider: "google",
+    defaultAspectRatio: "4:3",
+    quality: "2k",
+  },
   convert: {
     theme: "default",
   },
@@ -78,6 +92,7 @@ function loadConfig(): WorkflowConfig {
       const raw = JSON.parse(fs.readFileSync(configPath, "utf-8"));
       return {
         cover: { ...DEFAULT_CONFIG.cover, ...raw.cover },
+        inlineImages: { ...DEFAULT_CONFIG.inlineImages, ...raw.inlineImages },
         convert: { ...DEFAULT_CONFIG.convert, ...raw.convert },
         publish: { ...DEFAULT_CONFIG.publish, ...raw.publish },
       };
@@ -98,6 +113,7 @@ interface WorkflowOptions {
   coverSkill?: string;
   coverProvider?: string;
   coverAspectRatio?: string;
+  noInlineImages?: boolean;  // --no-inline-images 跳过正文插图生成
   method?: string;
   title?: string;
   author?: string;
@@ -129,6 +145,7 @@ function printUsage(config: WorkflowConfig): never {
   --author <author>        作者
   --summary <text>         摘要
   --theme <name>           Markdown 主题: default | grace | simple（默认 ${config.convert.theme}）
+  --no-inline-images       跳过正文 image-gen 插图生成
   --submit                 浏览器模式下自动提交
   --dry-run                预览模式
   --help                   显示帮助
@@ -167,6 +184,7 @@ function parseArgs(argv: string[]): WorkflowOptions {
   let author: string | undefined;
   let summary: string | undefined;
   let theme: string | undefined;
+  let noInlineImages = false;
   let submit = false;
   let dryRun = false;
 
@@ -212,6 +230,9 @@ function parseArgs(argv: string[]): WorkflowOptions {
       case "--submit":
         submit = true;
         break;
+      case "--no-inline-images":
+        noInlineImages = true;
+        break;
       case "--dry-run":
         dryRun = true;
         break;
@@ -227,7 +248,7 @@ function parseArgs(argv: string[]): WorkflowOptions {
     printUsage(config);
   }
 
-  return { file, cover, generateCover, coverPrompt, coverSkill, coverProvider, coverAspectRatio, method, title, author, summary, theme, submit, dryRun };
+  return { file, cover, generateCover, coverPrompt, coverSkill, coverProvider, coverAspectRatio, noInlineImages, method, title, author, summary, theme, submit, dryRun };
 }
 
 // ============ 工具 ============
@@ -270,6 +291,252 @@ function extractTitleFromMarkdown(filePath: string): string | null {
   } catch {
     return null;
   }
+}
+
+// ============ 正文插图解析与生成 ============
+
+interface ImageGenBlock {
+  /** 原始代码块完整匹配文本 */
+  raw: string;
+  /** 图片内容描述 (prompt) */
+  content: string;
+  /** 参考风格图路径列表 (相对于 md 文件) */
+  ref: string[];
+  /** 用户指定的输出图片路径 (相对于 md 文件) */
+  image?: string;
+  /** 宽高比 */
+  ar?: string;
+  /** AI provider */
+  provider?: string;
+  /** 模型 ID */
+  model?: string;
+  /** 质量 */
+  quality?: string;
+  /** 显式尺寸 */
+  size?: string;
+  /** 替换后的 alt 文字 */
+  alt?: string;
+  /** 人物生成控制 */
+  personGen?: string;
+  /** 是否启用 Google Search */
+  googleSearch?: boolean;
+  /** 生成后的图片路径 (绝对路径，运行时填充) */
+  outputPath?: string;
+}
+
+/**
+ * 解析 YAML-like 的代码块内容。
+ * 支持多行值（key: |\n  ...）和单行值（key: value）。
+ */
+function parseYamlLike(text: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  const lines = text.split(/\r?\n/);
+  let currentKey = "";
+  let currentValue = "";
+  let multiLine = false;
+
+  const flush = () => {
+    if (currentKey) {
+      result[currentKey] = currentValue.trim();
+    }
+  };
+
+  for (const line of lines) {
+    const kvMatch = line.match(/^([\w-]+):\s*(.*)$/);
+    if (kvMatch && !multiLine) {
+      flush();
+      currentKey = kvMatch[1]!;
+      const val = kvMatch[2]!.trim();
+      if (val === "|" || val === "|-") {
+        multiLine = true;
+        currentValue = "";
+      } else {
+        multiLine = false;
+        currentValue = val;
+      }
+    } else if (kvMatch && multiLine && !line.startsWith(" ") && !line.startsWith("\t")) {
+      // 新的顶级 key，结束多行
+      flush();
+      currentKey = kvMatch[1]!;
+      const val = kvMatch[2]!.trim();
+      if (val === "|" || val === "|-") {
+        multiLine = true;
+        currentValue = "";
+      } else {
+        multiLine = false;
+        currentValue = val;
+      }
+    } else if (multiLine) {
+      currentValue += (currentValue ? "\n" : "") + line.replace(/^  /, "");
+    }
+  }
+  flush();
+  return result;
+}
+
+/** 解析 Markdown 中所有 ```image-gen ... ``` 代码块 */
+function parseImageGenBlocks(mdContent: string, mdDir: string): ImageGenBlock[] {
+  const pattern = /```image-gen\s*\n([\s\S]*?)```/g;
+  const blocks: ImageGenBlock[] = [];
+  let match;
+
+  while ((match = pattern.exec(mdContent)) !== null) {
+    const raw = match[0]!;
+    const body = match[1]!;
+    const fields = parseYamlLike(body);
+
+    if (!fields["content"]) {
+      console.warn(`⚠️  跳过缺少 content 字段的 image-gen 块`);
+      continue;
+    }
+
+    const refField = fields["ref"] || "";
+    const refs = refField
+      ? refField.split(/,\s*/).map(r => path.resolve(mdDir, r.trim())).filter(Boolean)
+      : [];
+
+    blocks.push({
+      raw,
+      content: fields["content"]!,
+      ref: refs,
+      image: fields["image"],
+      ar: fields["ar"],
+      provider: fields["provider"],
+      model: fields["model"],
+      quality: fields["quality"],
+      size: fields["size"],
+      alt: fields["alt"],
+      personGen: fields["person-gen"],
+      googleSearch: fields["google-search"] === "true",
+    });
+  }
+
+  return blocks;
+}
+
+/** 调用 baoyu-image-gen 生成每个 image-gen 块对应的图片 */
+function generateInlineImages(
+  blocks: ImageGenBlock[],
+  config: WorkflowConfig,
+  mdDir: string,
+  dryRun: boolean,
+): ImageGenBlock[] {
+  const skillScript = SKILL_SCRIPTS[config.inlineImages.skill];
+  if (!skillScript) {
+    console.error(`❌ 未知的插图 skill: ${config.inlineImages.skill}`);
+    process.exit(1);
+  }
+  if (!fs.existsSync(skillScript)) {
+    console.error(`❌ 依赖的 skill 不存在: ${config.inlineImages.skill}`);
+    process.exit(1);
+  }
+
+  const outputDir = path.join(mdDir, "_gen_images");
+  if (!dryRun && !fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]!;
+    const idx = String(i + 1).padStart(2, "0");
+    // 优先使用用户指定的 image 路径，否则自动分配
+    const outputFile = block.image
+      ? path.resolve(mdDir, block.image)
+      : path.join(outputDir, `img_${idx}.png`);
+    block.outputPath = outputFile;
+
+    // 确保输出目录存在
+    if (!dryRun) {
+      const outDir = path.dirname(outputFile);
+      if (!fs.existsSync(outDir)) {
+        fs.mkdirSync(outDir, { recursive: true });
+      }
+    }
+
+    const provider = block.provider || config.inlineImages.provider;
+    const ar = block.ar || config.inlineImages.defaultAspectRatio;
+    const quality = block.quality || config.inlineImages.quality;
+
+    console.log(`   [${idx}/${String(blocks.length).padStart(2, "0")}] 生成插图...`);
+    console.log(`        Prompt:   ${block.content.split("\n")[0]}${block.content.includes("\n") ? "..." : ""}`);
+    if (block.ref.length > 0) {
+      console.log(`        Ref:      ${block.ref.map(r => path.basename(r)).join(", ")}`);
+    }
+    console.log(`        Provider: ${provider} | AR: ${ar} | Quality: ${quality}`);
+    console.log(`        Output:   ${path.relative(mdDir, outputFile)}`);
+
+    if (dryRun) {
+      console.log(`        (预览模式，跳过实际生成)\n`);
+      continue;
+    }
+
+    // 已存在则跳过，避免重复调用昂贵的生成 API
+    if (fs.existsSync(outputFile)) {
+      console.log(`        ⏭️  已存在，跳过生成\n`);
+      continue;
+    }
+
+    // 构建命令参数
+    // 多行 prompt 写入临时文件，避免 shell 转义问题
+    const promptFile = path.join(outputDir, `_prompt_${idx}.txt`);
+    fs.writeFileSync(promptFile, block.content, "utf-8");
+
+    const genArgs: string[] = [
+      skillScript,
+      "--promptfiles", promptFile,
+      "--image", outputFile,
+      "--ar", ar,
+      "--provider", provider,
+      "--quality", quality,
+    ];
+
+    if (block.model) genArgs.push("--model", block.model);
+    if (block.size) genArgs.push("--size", block.size);
+    if (block.personGen) genArgs.push("--person-gen", block.personGen);
+    if (block.googleSearch) genArgs.push("--google-search");
+
+    // 参考图
+    if (block.ref.length > 0) {
+      genArgs.push("--ref", ...block.ref);
+    }
+
+    const genResult = runBun(genArgs);
+
+    if (!genResult.success) {
+      console.error(`\n   ❌ 插图 ${idx} 生成失败，继续处理下一张...\n`);
+      block.outputPath = undefined;
+      continue;
+    }
+
+    if (!fs.existsSync(outputFile)) {
+      console.error(`   ❌ 插图文件未生成: ${outputFile}`);
+      block.outputPath = undefined;
+      continue;
+    }
+
+    console.log(`        ✅ 生成完成\n`);
+  }
+
+  return blocks;
+}
+
+/** 将 image-gen 块替换为 ![alt](path) 并返回新内容 */
+function replaceImageBlocks(mdContent: string, blocks: ImageGenBlock[], mdDir: string): string {
+  let result = mdContent;
+
+  for (const block of blocks) {
+    if (!block.outputPath) {
+      // 生成失败，保留原始代码块
+      continue;
+    }
+
+    const relPath = path.relative(mdDir, block.outputPath);
+    const altText = block.alt || block.content.split("\n")[0]!.slice(0, 60);
+    const imageMarkdown = `![${altText}](${relPath})`;
+    result = result.replace(block.raw, imageMarkdown);
+  }
+
+  return result;
 }
 
 // ============ 主流程 ============
@@ -385,6 +652,41 @@ async function main() {
     }
   }
 
+  // ── Step 1.5: 正文插图生成 ─────────────────────────
+
+  let processedFilePath = filePath;  // 传给 Step 2 的文件路径
+
+  const shouldGenerateInline = !options.noInlineImages && config.inlineImages.enabled;
+
+  if (shouldGenerateInline && filePath.endsWith(".md")) {
+    const mdContent = fs.readFileSync(filePath, "utf-8");
+    const mdDir = path.dirname(filePath);
+    const blocks = parseImageGenBlocks(mdContent, mdDir);
+
+    if (blocks.length > 0) {
+      console.log("═".repeat(50));
+      console.log(`🖼️  Step 1.5: 正文插图生成（检测到 ${blocks.length} 个 image-gen 块）\n`);
+
+      generateInlineImages(blocks, config, mdDir, !!options.dryRun);
+
+      // 替换并写入临时文件（保留原文不变）
+      const newContent = replaceImageBlocks(mdContent, blocks, mdDir);
+      const tempPath = filePath.replace(/\.md$/, "._processed.md");
+      fs.writeFileSync(tempPath, newContent, "utf-8");
+      processedFilePath = tempPath;
+
+      const generated = blocks.filter(b => b.outputPath).length;
+      console.log(`   📊 结果: ${generated}/${blocks.length} 张插图生成成功`);
+      console.log(`   📄 处理后文件: ${path.basename(tempPath)}\n`);
+    } else {
+      console.log("═".repeat(50));
+      console.log("🖼️  Step 1.5: 未检测到 image-gen 块，跳过\n");
+    }
+  } else if (shouldGenerateInline && !filePath.endsWith(".md")) {
+    console.log("═".repeat(50));
+    console.log("🖼️  Step 1.5: 非 Markdown 文件，跳过插图生成\n");
+  }
+
   // ── Step 2: 发布 ────────────────────────────────────
 
   console.log("═".repeat(50));
@@ -396,7 +698,7 @@ async function main() {
     process.exit(1);
   }
 
-  const publishArgs = [PUBLISH_SCRIPT, filePath, "--cover", coverPath];
+  const publishArgs = [PUBLISH_SCRIPT, processedFilePath, "--cover", coverPath];
 
   publishArgs.push("--method", publishMethod);
   publishArgs.push("--theme", mdTheme);

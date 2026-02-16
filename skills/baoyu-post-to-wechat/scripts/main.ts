@@ -32,7 +32,7 @@ import {
   loadJsonConfig,
   type PublishMethod,
 } from "./src/config.ts";
-import { runCommand, isWindows } from "./src/command.ts";
+import { runCommand, runBunScript } from "./src/command.ts";
 import { ApiPublisher } from "./src/publishers/api.ts";
 import { BrowserPublisher } from "./src/publishers/browser.ts";
 import { RemotePublisher } from "./src/publishers/remote.ts";
@@ -216,9 +216,8 @@ async function main() {
     const theme = options.theme || jsonConfig?.publish?.theme || "default";
     console.log(`   主题: ${theme}`);
 
-    const convertResult = isWindows
-      ? runCommand("bun", [mdToHtmlScript, filePath, "--theme", theme], { silent: true, shell: false })
-      : runCommand("npx", ["-y", "bun", mdToHtmlScript, filePath, "--theme", theme], { silent: true });
+    const bunResult = runBunScript(mdToHtmlScript, [filePath, "--theme", theme]);
+    const convertResult = { success: bunResult.status === 0, output: (bunResult.stdout || "") + (bunResult.stderr || "") };
 
     if (!convertResult.success) {
       console.error("❌ Markdown 转换失败");

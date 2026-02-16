@@ -110,6 +110,7 @@ interface WorkflowOptions {
   cover?: string;
   generateCover?: boolean;   // CLI 显式指定
   coverPrompt?: string;
+  coverRef?: string;         // 封面参考风格图
   coverSkill?: string;
   coverProvider?: string;
   coverAspectRatio?: string;
@@ -135,6 +136,7 @@ function printUsage(config: WorkflowConfig): never {
   --generate-cover         强制 AI 生成封面
   --no-generate-cover      强制不生成封面
   --cover-prompt <text>    封面生成提示词（默认用文章标题）
+  --cover-ref <path>       封面参考风格图（相对于文章文件）
   --cover-skill <skill>    封面生成 skill: image-gen | gemini-web（默认 ${config.cover.skill}）
   --cover-provider <p>     封面 AI provider: google | openai | dashscope（仅 image-gen）
   --cover-ar <ratio>       封面宽高比（默认 ${config.cover.aspectRatio}，仅 image-gen）
@@ -176,6 +178,7 @@ function parseArgs(argv: string[]): WorkflowOptions {
   let cover: string | undefined;
   let generateCover: boolean | undefined;
   let coverPrompt: string | undefined;
+  let coverRef: string | undefined;
   let coverSkill: string | undefined;
   let coverProvider: string | undefined;
   let coverAspectRatio: string | undefined;
@@ -202,6 +205,9 @@ function parseArgs(argv: string[]): WorkflowOptions {
         break;
       case "--cover-prompt":
         coverPrompt = argv[++i];
+        break;
+      case "--cover-ref":
+        coverRef = argv[++i];
         break;
       case "--cover-skill":
         coverSkill = argv[++i];
@@ -248,7 +254,7 @@ function parseArgs(argv: string[]): WorkflowOptions {
     printUsage(config);
   }
 
-  return { file, cover, generateCover, coverPrompt, coverSkill, coverProvider, coverAspectRatio, noInlineImages, method, title, author, summary, theme, submit, dryRun };
+  return { file, cover, generateCover, coverPrompt, coverRef, coverSkill, coverProvider, coverAspectRatio, noInlineImages, method, title, author, summary, theme, submit, dryRun };
 }
 
 // ============ 工具 ============
@@ -277,19 +283,36 @@ function runBun(scriptArgs: string[], options?: { silent?: boolean }): { success
   return run("npx", ["-y", "bun", ...scriptArgs], options);
 }
 
-function extractTitleFromMarkdown(filePath: string): string | null {
+/** 从 Markdown 文件的 frontmatter 中提取关键字段 */
+function extractFrontmatter(filePath: string): {
+  title?: string;
+  cover?: string;
+  coverPrompt?: string;
+  coverRef?: string;
+} {
   try {
     const content = fs.readFileSync(filePath, "utf-8");
     const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-    if (fmMatch) {
-      const titleMatch = fmMatch[1]!.match(/^title:\s*["']?(.+?)["']?\s*$/m);
-      if (titleMatch) return titleMatch[1]!;
+    if (!fmMatch) {
+      // 没有 frontmatter，尝试从 h1 提取标题
+      const h1Match = content.match(/^#\s+(.+)$/m);
+      return { title: h1Match?.[1] || undefined };
     }
-    const h1Match = content.match(/^#\s+(.+)$/m);
-    if (h1Match) return h1Match[1]!;
-    return null;
+
+    const fm = fmMatch[1]!;
+    const getField = (key: string) => {
+      const m = fm.match(new RegExp(`^${key}:\\s*["']?(.+?)["']?\\s*$`, 'm'));
+      return m?.[1] || undefined;
+    };
+
+    return {
+      title: getField('title'),
+      cover: getField('cover'),
+      coverPrompt: getField('cover-prompt'),
+      coverRef: getField('cover-ref'),
+    };
   } catch {
-    return null;
+    return {};
   }
 }
 
@@ -551,7 +574,23 @@ async function main() {
     process.exit(1);
   }
 
-  // 合并配置：CLI > config.json > 默认
+  // 合并配置：CLI > frontmatter > config.json > 默认
+  // 从 frontmatter 读取 cover 相关字段（仅 .md 文件）
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".md") {
+    const fm = extractFrontmatter(filePath);
+    // cover: frontmatter 指定的封面图（CLI --cover 优先）
+    if (!options.cover && fm.cover) {
+      const fmCover = fm.cover.startsWith("http") ? fm.cover : path.resolve(path.dirname(filePath), fm.cover);
+      if (fm.cover.startsWith("http") || fs.existsSync(fmCover)) {
+        options.cover = fmCover;
+      }
+    }
+    // cover-prompt / cover-ref: frontmatter 指定的封面生成参数
+    if (!options.coverPrompt && fm.coverPrompt) options.coverPrompt = fm.coverPrompt;
+    if (!options.coverRef && fm.coverRef) options.coverRef = fm.coverRef;
+  }
+
   const shouldGenerateCover = options.cover
     ? false  // 有 --cover 就不生成
     : options.generateCover ?? config.cover.autoGenerate;
@@ -592,8 +631,9 @@ async function main() {
       process.exit(1);
     }
 
-    const articleTitle = options.title || extractTitleFromMarkdown(filePath) || "tech blog article";
+    const articleTitle = options.title || extractFrontmatter(filePath).title || "tech blog article";
     const prompt = options.coverPrompt || `${config.cover.defaultPromptPrefix}${articleTitle}`;
+    const coverRef = options.coverRef;
     const coverOutput = path.join(path.dirname(filePath), "_ai_cover.png");
 
     console.log(`   Skill:    ${coverSkill}`);
@@ -618,6 +658,10 @@ async function main() {
           "--ar", coverAR,
           "--provider", coverProvider,
         ];
+        if (coverRef) {
+          const refPath = path.resolve(path.dirname(filePath), coverRef);
+          genArgs.push("--ref", refPath);
+        }
       } else {
         // gemini-web: 只支持 --prompt 和 --image
         genArgs = [

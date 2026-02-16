@@ -1,0 +1,98 @@
+#!/bin/bash
+# ================================================================
+# 微信公众号发布 — 快捷入口
+#
+# 用法:
+#   publish-wechat <article.md> [options]
+#
+# 示例:
+#   publish-wechat ~/writing/my-article.md --cover ./cover.jpg
+#   publish-wechat ~/writing/my-article.md --generate-cover
+#   publish-wechat ~/writing/my-article.md --cover ./cover.jpg --dry-run
+#
+# 文章可以在任意位置（如 Obsidian Vault），脚本会自动定位
+# baoyu-skills 仓库并调用 publish-wechat.ts workflow。
+# ================================================================
+
+set -euo pipefail
+
+# ━━━ 定位脚本和仓库 ━━━
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+WORKFLOW="$REPO_ROOT/workflows/publish-wechat.ts"
+
+if [[ ! -f "$WORKFLOW" ]]; then
+  echo "❌ 找不到 workflow 脚本: $WORKFLOW"
+  echo "   请确认 baoyu-skills 仓库路径正确"
+  exit 1
+fi
+
+# ━━━ 检查参数 ━━━
+if [[ $# -lt 1 || "$1" == "--help" || "$1" == "-h" ]]; then
+  echo "微信公众号发布 — 快捷入口"
+  echo ""
+  echo "用法: publish-wechat <article.md> [options]"
+  echo ""
+  echo "  文章路径支持 Obsidian Vault 或任意目录中的 .md 文件。"
+  echo "  所有选项直接透传给 publish-wechat.ts workflow。"
+  echo ""
+  echo "常用选项:"
+  echo "  --cover <path>        手动指定封面图"
+  echo "  --generate-cover      AI 生成封面"
+  echo "  --dry-run             预览模式"
+  echo "  --title <title>       覆盖 frontmatter 标题"
+  echo "  --author <author>     覆盖作者"
+  echo "  --summary <text>      覆盖摘要"
+  echo "  --theme <theme>       主题: default | grace | simple"
+  echo ""
+  echo "示例:"
+  echo "  publish-wechat \"~/Nutstore Files/Obsidian Vault/0.writing/tech/my-article.md\" --cover cover.jpg"
+  echo "  publish-wechat ./article.md --generate-cover --dry-run"
+  exit 0
+fi
+
+# ━━━ 解析文章路径 ━━━
+ARTICLE_PATH="$1"
+
+# 展开 ~
+ARTICLE_PATH="${ARTICLE_PATH/#\~/$HOME}"
+
+if [[ ! -f "$ARTICLE_PATH" ]]; then
+  echo "❌ 文件不存在: $ARTICLE_PATH"
+  exit 1
+fi
+
+# 转为绝对路径
+ARTICLE_PATH="$(cd "$(dirname "$ARTICLE_PATH")" && pwd)/$(basename "$ARTICLE_PATH")"
+
+echo "📄 文章: $ARTICLE_PATH"
+echo ""
+
+# ━━━ 检查封面 ━━━
+# 如果 frontmatter 中指定了 cover，且没有 CLI --cover，尝试自动读取
+HAS_COVER_ARG=false
+for arg in "${@:2}"; do
+  if [[ "$arg" == "--cover" || "$arg" == "--generate-cover" ]]; then
+    HAS_COVER_ARG=true
+    break
+  fi
+done
+
+if [[ "$HAS_COVER_ARG" == false ]]; then
+  # 尝试从 frontmatter 读取 cover 字段
+  COVER=$(sed -n '/^---$/,/^---$/{ /^cover:/{s/^cover:[[:space:]]*["'"'"']*\([^"'"'"']*\)["'"'"']*/\1/p; }; }' "$ARTICLE_PATH")
+  if [[ -n "$COVER" ]]; then
+    # 相对路径 → 相对文章所在目录
+    if [[ "$COVER" != /* && "$COVER" != http* ]]; then
+      COVER="$(dirname "$ARTICLE_PATH")/$COVER"
+    fi
+    if [[ -f "$COVER" || "$COVER" == http* ]]; then
+      echo "🖼️  Frontmatter 封面: $COVER"
+      set -- "$@" "--cover" "$COVER"
+    fi
+  fi
+fi
+
+# ━━━ 执行发布 ━━━
+cd "$REPO_ROOT"
+exec npx -y bun "$WORKFLOW" "$ARTICLE_PATH" "${@:2}"

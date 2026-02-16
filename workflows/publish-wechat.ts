@@ -53,6 +53,7 @@ interface WorkflowConfig {
     provider: string;
     defaultAspectRatio: string;
     quality: string;
+    outputDir: string;
   };
   convert: {
     theme: string;
@@ -76,6 +77,7 @@ const DEFAULT_CONFIG: WorkflowConfig = {
     provider: "google",
     defaultAspectRatio: "4:3",
     quality: "2k",
+    outputDir: "attachments",
   },
   convert: {
     theme: "default",
@@ -259,10 +261,20 @@ function parseArgs(argv: string[]): WorkflowOptions {
 
 // ============ 工具 ============
 
+/** 对含特殊字符的参数进行 shell 转义（单引号包裹） */
+function shellQuote(arg: string): string {
+  // 不含特殊字符的参数无需引用
+  if (!/[ \t"'\\$`!#&|;()<>]/.test(arg)) return arg;
+  // 用单引号包裹，内部单引号用 '\'' 转义
+  return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
 function run(cmd: string, args: string[], options?: { silent?: boolean; shell?: boolean }): { success: boolean; output: string } {
-  const result = spawnSync(cmd, args, {
+  const useShell = options?.shell ?? true;
+  const finalArgs = useShell ? args.map(shellQuote) : args;
+  const result = spawnSync(cmd, finalArgs, {
     encoding: "utf-8",
-    shell: options?.shell ?? true,
+    shell: useShell,
     cwd: PROJECT_ROOT,
   });
 
@@ -437,6 +449,25 @@ function parseImageGenBlocks(mdContent: string, mdDir: string): ImageGenBlock[] 
   return blocks;
 }
 
+/** 从 alt 或 content 生成简短文件名 slug */
+function slugify(text: string): string {
+  return text
+    .replace(/[\n\r]+/g, " ")           // 换行→空格
+    .replace(/[^\w\u4e00-\u9fff]+/g, "-") // 非字母/数字/中文→连字符
+    .replace(/^-+|-+$/g, "")            // 去首尾连字符
+    .slice(0, 40)                        // 限长
+    .replace(/-+$/g, "");                // 截断后再去尾部连字符
+}
+
+/** 生成带时间戳的图片文件名 */
+function genImageFilename(block: { alt?: string; content: string }, idx: number): string {
+  const now = new Date();
+  const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  const source = block.alt || block.content.split("\n")[0] || `img-${idx}`;
+  const slug = slugify(source);
+  return `${ts}-${slug}.png`;
+}
+
 /** 调用 baoyu-image-gen 生成每个 image-gen 块对应的图片 */
 function generateInlineImages(
   blocks: ImageGenBlock[],
@@ -454,7 +485,8 @@ function generateInlineImages(
     process.exit(1);
   }
 
-  const outputDir = path.join(mdDir, "_gen_images");
+  // 输出目录：优先用 config.inlineImages.outputDir，回退到 attachments
+  const outputDir = path.resolve(mdDir, config.inlineImages.outputDir || "attachments");
   if (!dryRun && !fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
@@ -462,10 +494,10 @@ function generateInlineImages(
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]!;
     const idx = String(i + 1).padStart(2, "0");
-    // 优先使用用户指定的 image 路径，否则自动分配
+    // 优先使用用户指定的 image 路径，否则自动分配到 outputDir
     const outputFile = block.image
       ? path.resolve(mdDir, block.image)
-      : path.join(outputDir, `img_${idx}.png`);
+      : path.join(outputDir, genImageFilename(block, i + 1));
     block.outputPath = outputFile;
 
     // 确保输出目录存在

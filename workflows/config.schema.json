@@ -84,6 +84,11 @@
           ],
           "default": "2k",
           "description": "默认图片质量"
+        },
+        "outputDir": {
+          "type": "string",
+          "default": "attachments",
+          "description": "生成图片的输出目录（相对于 Markdown 文件所在目录），默认为 attachments"
         }
       }
     },

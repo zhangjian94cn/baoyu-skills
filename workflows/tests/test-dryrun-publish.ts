@@ -30,6 +30,12 @@ function section(title: string) {
     console.log(`\n${BOLD}${CYAN}━━━ ${title} ━━━${RESET}\n`);
 }
 
+/** shell 转义：含特殊字符的参数用单引号包裹 */
+function shellQuote(arg: string): string {
+    if (!/[ \t"'\\$`!#&|;()<>]/.test(arg)) return arg;
+    return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
 // ============ 准备测试环境 ============
 
 section("准备测试环境");
@@ -177,6 +183,54 @@ if (resultB.status === 0) {
     console.log(`${GREEN}✅ dry-run 成功${RESET}`);
 } else {
     console.log(`${YELLOW}⚠️  退出码: ${resultB.status}（若为图片生成 API 错误则可忽略）${RESET}`);
+}
+
+// ============ Test C: 路径含空格 → dry-run ============
+
+section("Test C: 路径含空格 → dry-run 发布");
+
+const spacedDir = path.join(tmpDir, "Nutstore Files", "Obsidian Vault");
+fs.mkdirSync(spacedDir, { recursive: true });
+
+const spacedMdPath = path.join(spacedDir, "spaced-test.md");
+fs.writeFileSync(spacedMdPath, simpleMd, "utf-8");
+
+const spacedCoverPath = path.join(spacedDir, "cover.png");
+fs.writeFileSync(spacedCoverPath, minPng);
+
+console.log(`📁 带空格路径: ${spacedDir}`);
+console.log(`📄 MD 文件:    ${spacedMdPath}`);
+console.log(`🖼️  封面图:     ${spacedCoverPath}`);
+
+const resultC = spawnSync(bunPath, [
+    ...bunArgs,
+    publishScript,
+    spacedMdPath,
+    "--cover", spacedCoverPath,
+    "--no-inline-images",
+    "--dry-run",
+].map(shellQuote), {
+    stdio: ["inherit", "pipe", "pipe"],
+    shell: !isWindows,
+    cwd: workflowDir,
+    env: { ...process.env },
+    timeout: 60000,
+});
+
+const stdoutC = resultC.stdout?.toString() || "";
+const stderrC = resultC.stderr?.toString() || "";
+
+console.log("--- stdout ---");
+console.log(stdoutC.slice(0, 2000));
+if (stderrC) {
+    console.log("--- stderr ---");
+    console.log(stderrC.slice(0, 1000));
+}
+
+if (resultC.status === 0) {
+    console.log(`${GREEN}✅ 路径含空格 dry-run 成功 (exit code: 0)${RESET}`);
+} else {
+    console.log(`${RED}❌ 路径含空格 dry-run 失败 (exit code: ${resultC.status})${RESET}`);
 }
 
 // ============ 清理 ============

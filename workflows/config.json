@@ -12,7 +12,8 @@
     "skill": "image-gen",
     "provider": "google",
     "defaultAspectRatio": "4:3",
-    "quality": "2k"
+    "quality": "2k",
+    "outputDir": "attachments"
   },
   "convert": {
     "theme": "default"

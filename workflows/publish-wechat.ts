@@ -533,8 +533,13 @@ function generateInlineImages(
 
     // 构建命令参数
     // 多行 prompt 写入临时文件，避免 shell 转义问题
+    // 有参考图时，自动追加“仅参考风格”指令
+    let promptContent = block.content;
+    if (block.ref.length > 0) {
+      promptContent += "\n\n[Style Reference] Only reference the visual style of the attached image (colors, layout, typography, design language). Do NOT reproduce its content.";
+    }
     const promptFile = path.join(outputDir, `_prompt_${idx}.txt`);
-    fs.writeFileSync(promptFile, block.content, "utf-8");
+    fs.writeFileSync(promptFile, promptContent, "utf-8");
 
     const genArgs: string[] = [
       skillScript,
@@ -666,12 +671,19 @@ async function main() {
     const articleTitle = options.title || extractFrontmatter(filePath).title || "tech blog article";
     const prompt = options.coverPrompt || `${config.cover.defaultPromptPrefix}${articleTitle}`;
     const coverRef = options.coverRef;
+    // 有参考图时，自动追加"仅参考风格"指令
+    const fullPrompt = coverRef
+      ? `${prompt}\n\n[Style Reference] Only reference the visual style of the attached image (colors, layout, typography, design language). Do NOT reproduce its content.`
+      : prompt;
     const coverOutput = path.join(path.dirname(filePath), "_ai_cover.png");
 
     console.log(`   Skill:    ${coverSkill}`);
     if (coverSkill === "image-gen") {
       console.log(`   Provider: ${coverProvider}`);
       console.log(`   宽高比:   ${coverAR}`);
+    }
+    if (coverRef) {
+      console.log(`   参考图:   ${coverRef}`);
     }
     console.log(`   提示词:   ${prompt}`);
     console.log(`   输出:     ${path.basename(coverOutput)}\n`);
@@ -685,7 +697,7 @@ async function main() {
       if (coverSkill === "image-gen") {
         genArgs = [
           skillScript,
-          "--prompt", prompt,
+          "--prompt", fullPrompt,
           "--image", coverOutput,
           "--ar", coverAR,
           "--provider", coverProvider,
@@ -698,7 +710,7 @@ async function main() {
         // gemini-web: 只支持 --prompt 和 --image
         genArgs = [
           skillScript,
-          "--prompt", prompt,
+          "--prompt", fullPrompt,
           "--image", coverOutput,
         ];
       }

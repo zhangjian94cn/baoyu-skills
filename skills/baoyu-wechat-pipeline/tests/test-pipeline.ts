@@ -147,7 +147,7 @@ fs.writeFileSync(processedMdPath, processedContent, "utf-8");
 
 section("Test 3: Markdown → HTML 转换（baoyu-markdown-to-html）");
 
-const scriptDir = path.resolve(import.meta.dir, "../../skills/baoyu-markdown-to-html/scripts/main.ts");
+const scriptDir = path.resolve(import.meta.dir, "../../baoyu-markdown-to-html/scripts/main.ts");
 const mdToHtmlScript = fs.existsSync(scriptDir) ? scriptDir : null;
 
 if (mdToHtmlScript) {

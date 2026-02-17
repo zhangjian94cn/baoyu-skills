@@ -40,8 +40,9 @@ function shellQuote(arg: string): string {
 
 section("准备测试环境");
 
-const workflowDir = path.resolve(import.meta.dir, "..");
-const publishScript = path.join(workflowDir, "publish-wechat.ts");
+const scriptDir = path.resolve(import.meta.dir, "../scripts");
+const projectRoot = path.resolve(import.meta.dir, "../../../");
+const publishScript = path.join(scriptDir, "publish-wechat.ts");
 
 if (!fs.existsSync(publishScript)) {
     console.error(`${RED}❌ publish-wechat.ts 不存在: ${publishScript}${RESET}`);
@@ -105,7 +106,7 @@ const resultA = spawnSync(bunPath, [
 ], {
     stdio: ["inherit", "pipe", "pipe"],
     shell: !isWindows,
-    cwd: workflowDir,
+    cwd: projectRoot,
     env: { ...process.env },
     timeout: 60000,
 });
@@ -164,7 +165,7 @@ const resultB = spawnSync(bunPath, [
 ], {
     stdio: ["inherit", "pipe", "pipe"],
     shell: !isWindows,
-    cwd: workflowDir,
+    cwd: projectRoot,
     env: { ...process.env },
     timeout: 120000,
 });
@@ -212,7 +213,7 @@ const resultC = spawnSync(bunPath, [
 ].map(shellQuote), {
     stdio: ["inherit", "pipe", "pipe"],
     shell: !isWindows,
-    cwd: workflowDir,
+    cwd: projectRoot,
     env: { ...process.env },
     timeout: 60000,
 });

@@ -121,5 +121,15 @@ Options:
 
 编辑 `scripts/config.json` 设置默认行为。Schema: `scripts/config.schema.json`。
 
-配置优先级: **CLI 参数 > frontmatter > config.json > 默认值**
+### .env（API 凭证）
 
+本 skill 依赖底层 skill 的 API 密钥，存放于项目根 `.env`（已 gitignore）。
+首次使用请复制模板：`cp .env.example .env` 并填入真实密钥。
+
+```
+查找顺序: 项目根/.env → ~/.baoyu-skills/.env
+```
+
+所需密钥见 `.env.example`：`WECHAT_APP_ID`、`WECHAT_APP_SECRET`、`GEMINI_API_KEY` 等。
+
+配置优先级: **CLI 参数 > frontmatter > config.json > .env > 默认值**

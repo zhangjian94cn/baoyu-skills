@@ -4,7 +4,7 @@
     "autoGenerate": true,
     "skill": "image-gen",
     "provider": "google",
-    "aspectRatio": "2.35:1",
+    "aspectRatio": "21:9",
     "defaultPromptPrefix": "A modern, clean cover image for: "
   },
   "inlineImages": {

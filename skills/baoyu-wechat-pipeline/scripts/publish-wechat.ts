@@ -158,12 +158,40 @@ interface WorkflowConfig {
   };
 }
 
+// Google Gemini API 支持的宽高比枚举
+const GOOGLE_SUPPORTED_ASPECT_RATIOS = [
+  "1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3",
+  "4:5", "5:4", "8:1", "9:16", "16:9", "21:9",
+] as const;
+
+/** 将不支持的宽高比映射到最近的合法值（按数值比例最接近） */
+function normalizeAspectRatio(ar: string, provider: string): string {
+  if (provider !== "google") return ar;
+  if ((GOOGLE_SUPPORTED_ASPECT_RATIOS as readonly string[]).includes(ar)) return ar;
+  // 解析为数值
+  const parts = ar.split(":").map(Number);
+  if (parts.length !== 2 || parts.some(isNaN)) return ar;
+  const target = parts[0]! / parts[1]!;
+  let best: string = GOOGLE_SUPPORTED_ASPECT_RATIOS[0];
+  let bestDiff = Infinity;
+  for (const candidate of GOOGLE_SUPPORTED_ASPECT_RATIOS) {
+    const [w, h] = candidate.split(":").map(Number);
+    const diff = Math.abs(w! / h! - target);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = candidate;
+    }
+  }
+  console.log(`⚠️  宽高比 ${ar} 不被 Google API 支持，自动修正为 ${best}`);
+  return best;
+}
+
 const DEFAULT_CONFIG: WorkflowConfig = {
   cover: {
     autoGenerate: true,
     skill: "image-gen",
     provider: "google",
-    aspectRatio: "2.35:1",
+    aspectRatio: "21:9",
     defaultPromptPrefix: "A modern, clean cover image for: ",
   },
   inlineImages: {
@@ -412,11 +440,14 @@ function extractFrontmatter(filePath: string): {
       return m?.[1] || undefined;
     };
 
+    // 过滤掉空字符串（如 cover-ref: "" 或 cover: ""）
+    const cover = getField('cover');
+    const coverRef = getField('cover-ref');
     return {
       title: getField('title'),
-      cover: getField('cover'),
-      coverPrompt: getField('cover-prompt'),
-      coverRef: getField('cover-ref'),
+      cover: cover || undefined,
+      coverPrompt: getField('cover-prompt') || undefined,
+      coverRef: coverRef || undefined,
     };
   } catch {
     return {};
@@ -733,7 +764,8 @@ async function main() {
 
   const coverSkill = options.coverSkill || config.cover.skill;
   const coverProvider = options.coverProvider || config.cover.provider;
-  const coverAR = options.coverAspectRatio || config.cover.aspectRatio;
+  const rawCoverAR = options.coverAspectRatio || config.cover.aspectRatio;
+  const coverAR = normalizeAspectRatio(rawCoverAR, coverProvider);
   const publishMethod = options.method || config.publish.method;
   const mdTheme = options.theme || config.convert.theme;
 
@@ -803,7 +835,11 @@ async function main() {
         ];
         if (coverRef) {
           const refPath = path.resolve(path.dirname(filePath), coverRef);
-          genArgs.push("--ref", refPath);
+          if (fs.existsSync(refPath)) {
+            genArgs.push("--ref", refPath);
+          } else {
+            console.warn(`⚠️  参考图不存在，跳过: ${refPath}`);
+          }
         }
       } else {
         // gemini-web: 只支持 --prompt 和 --image

@@ -578,6 +578,7 @@ function preprocessCjkEmphasis(markdown: string): string {
   };
   const extractText = (node: any): string => {
     if (node.type === "text") return node.value;
+    if (node.type === "inlineCode") return `\`${node.value}\``;
     if (node.children) return node.children.map(extractText).join("");
     return "";
   };

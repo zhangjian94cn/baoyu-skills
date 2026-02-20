@@ -2,7 +2,7 @@
   "$schema": "./config.schema.json",
   "cover": {
     "autoGenerate": true,
-    "skill": "gemini-web",
+    "skill": "image-gen",
     "provider": "google",
     "aspectRatio": "2.35:1",
     "defaultPromptPrefix": "A modern, clean cover image for: "

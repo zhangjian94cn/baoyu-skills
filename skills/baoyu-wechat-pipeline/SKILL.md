@@ -122,3 +122,4 @@ Options:
 编辑 `scripts/config.json` 设置默认行为。Schema: `scripts/config.schema.json`。
 
 配置优先级: **CLI 参数 > frontmatter > config.json > 默认值**
+

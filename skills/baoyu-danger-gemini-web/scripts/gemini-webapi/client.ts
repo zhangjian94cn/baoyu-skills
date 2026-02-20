@@ -1,3 +1,5 @@
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 import { Endpoint, ErrorCode, Headers, Model } from './constants.js';
 import { GemMixin } from './components/gem-mixin.js';
 import {
@@ -24,6 +26,7 @@ import {
   upload_file,
   write_cookie_file,
   resolveGeminiWebCookiePath,
+  resolveGeminiWebDataDir,
 } from './utils/index.js';
 
 type InitOptions = {
@@ -158,7 +161,7 @@ export class GeminiClient extends GemMixin {
         void this.start_auto_refresh(ctl.signal);
       }
 
-      await write_cookie_file(this.cookies, resolveGeminiWebCookiePath(), 'client').catch(() => {});
+      await write_cookie_file(this.cookies, resolveGeminiWebCookiePath(), 'client').catch(() => { });
 
       if (vb) logger.success('Gemini client initialized successfully.');
     } catch (e) {
@@ -212,7 +215,7 @@ export class GeminiClient extends GemMixin {
 
       if (newTs) {
         this.cookies['__Secure-1PSIDTS'] = newTs;
-        await write_cookie_file(this.cookies, resolveGeminiWebCookiePath(), 'refresh').catch(() => {});
+        await write_cookie_file(this.cookies, resolveGeminiWebCookiePath(), 'refresh').catch(() => { });
         logger.debug('Cookies refreshed. New __Secure-1PSIDTS applied.');
       }
 
@@ -337,7 +340,7 @@ export class GeminiClient extends GemMixin {
               body_json = part_json;
               break;
             }
-          } catch {}
+          } catch { }
         }
         if (!body_json) throw new Error('No body');
       } catch {
@@ -369,6 +372,14 @@ export class GeminiClient extends GemMixin {
         }
 
         logger.debug(`Invalid response: ${txt.slice(0, 500)}`);
+
+        // Save the raw response to data directory for debugging
+        try {
+          const dumpPath = path.join(resolveGeminiWebDataDir(), `error-dump-${Date.now()}.txt`);
+          fs.writeFileSync(dumpPath, txt, 'utf8');
+          logger.error(`Saved invalid raw response to ${dumpPath} for debugging.`);
+        } catch (dumpErr) { }
+
         throw new APIError('Failed to generate contents. Invalid response data received. Client will try to re-initialize on next request.');
       }
 
@@ -420,7 +431,7 @@ export class GeminiClient extends GemMixin {
                   img_body = part_json;
                   break;
                 }
-              } catch {}
+              } catch { }
             }
 
             if (!img_body) {

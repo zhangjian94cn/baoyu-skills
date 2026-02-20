@@ -37,6 +37,101 @@ const SKILL_SCRIPTS: Record<string, string> = {
 };
 const PUBLISH_SCRIPT = path.join(SKILLS_DIR, "baoyu-post-to-wechat/scripts/main.ts");
 
+// ============ 环境变量与依赖 ============
+
+/**
+ * 智能读取环境变量：
+ * 1. 从当前执行路径 (process.cwd()) 逐级向上找 .env
+ * 2. 从脚本所在路径 (__dirname) 逐级向上找 .env
+ * 3. 兜底全局配置: ~/.baoyu-skills/.env 和 ~/.zhangjian-skills/.env
+ */
+function loadProjectEnv(): void {
+  const loadedFiles = new Set<string>();
+  let totalLoadedVars = 0;
+
+  const loadEnvFile = (envPath: string) => {
+    if (loadedFiles.has(envPath)) return;
+    try {
+      if (!fs.existsSync(envPath)) return;
+      const content = fs.readFileSync(envPath, "utf-8");
+      loadedFiles.add(envPath);
+      let newVars = 0;
+
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const idx = trimmed.indexOf("=");
+        if (idx === -1) continue;
+        const key = trimmed.slice(0, idx).trim();
+        let val = trimmed.slice(idx + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        if (!process.env[key]) {
+          process.env[key] = val;
+          newVars++;
+          totalLoadedVars++;
+        }
+      }
+      if (newVars > 0) {
+        console.log(`📦 已加载环境变量: ${envPath} (${newVars} 项)`);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const traverseUp = (startDir: string) => {
+    let currentDir = startDir;
+    while (true) {
+      loadEnvFile(path.join(currentDir, ".env"));
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) break; // 到达根目录
+      currentDir = parentDir;
+    }
+  };
+
+  // 1. 从执行路径向上找 (优先级最高，针对特定项目的覆盖)
+  traverseUp(process.cwd());
+
+  // 2. 从脚本所在路径向上找 (适应 skill 被嵌入到 .hub 等子目录的场景)
+  traverseUp(__dirname);
+
+  // 3. 全局兜底
+  const home = os.homedir();
+  loadEnvFile(path.join(home, ".baoyu-skills", ".env"));
+  loadEnvFile(path.join(home, ".zhangjian-skills", ".env"));
+
+  if (totalLoadedVars === 0) {
+    console.log(`ℹ️  未找到或无需新增环境变量 (已扫描 ${loadedFiles.size} 个位置)`);
+  }
+}
+
+/** 扫描 skill 目录，自动安装缺失的 npm 依赖 */
+function ensureDependencies(): void {
+  const dirsToCheck = [
+    path.join(SKILLS_DIR, "baoyu-markdown-to-html/scripts/md"),
+    path.join(SKILLS_DIR, "baoyu-post-to-wechat/scripts"),
+  ];
+
+  for (const dir of dirsToCheck) {
+    const pkgJson = path.join(dir, "package.json");
+    const nodeModules = path.join(dir, "node_modules");
+    if (fs.existsSync(pkgJson) && !fs.existsSync(nodeModules)) {
+      console.log(`📦 安装依赖: ${path.relative(SKILLS_DIR, dir)}`);
+      const result = spawnSync("npm", ["install", "--production"], {
+        cwd: dir,
+        encoding: "utf-8",
+        shell: true,
+        stdio: "inherit",
+      });
+      if (result.status !== 0) {
+        console.error(`⚠️  依赖安装失败: ${dir}`);
+      }
+    }
+  }
+}
+
 // ============ 配置加载 ============
 
 interface WorkflowConfig {
@@ -602,6 +697,10 @@ function replaceImageBlocks(mdContent: string, blocks: ImageGenBlock[], mdDir: s
 // ============ 主流程 ============
 
 async function main() {
+  // 自动加载项目根目录 .env 和安装缺失依赖
+  loadProjectEnv();
+  ensureDependencies();
+
   const config = loadConfig();
   const options = parseArgs(process.argv.slice(2));
 

@@ -318,20 +318,13 @@ export function initRenderer(opts: IOpts = {}): RendererAPI {
 
     code({ text, lang = "" }: Tokens.Code): string {
       if (lang.startsWith("mermaid")) {
-        if (isBrowser) {
-          clearTimeout(codeIndex as any);
-          codeIndex = setTimeout(async () => {
-            const windowRef = typeof window !== "undefined" ? (window as any) : undefined;
-            if (windowRef && windowRef.mermaid) {
-              const mermaid = windowRef.mermaid;
-              await mermaid.run();
-            } else {
-              const mermaid = await import("mermaid");
-              await mermaid.default.run();
-            }
-          }, 0) as any as number;
-        }
-        return `<pre class="mermaid">${text}</pre>`;
+        // Build-time rendering via mermaid.ink (useful for WeChat which strips JS)
+        const encoded = Buffer.from(text).toString('base64');
+        const imageUrl = `https://mermaid.ink/svg/pako:${encoded}`;
+
+        return `<div class="mermaid-diagram" style="text-align: center; margin: 16px 8px; overflow-x: auto;">
+          <img src="${imageUrl}" alt="Mermaid Diagram" style="max-width: 100%; height: auto;" />
+        </div>`;
       }
       const langText = lang.split(" ")[0];
       const isLanguageRegistered = hljs.getLanguage(langText);

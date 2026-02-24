@@ -318,9 +318,11 @@ export function initRenderer(opts: IOpts = {}): RendererAPI {
 
     code({ text, lang = "" }: Tokens.Code): string {
       if (lang.startsWith("mermaid")) {
-        // Build-time rendering via mermaid.ink (useful for WeChat which strips JS)
-        const encoded = Buffer.from(text).toString('base64');
-        const imageUrl = `https://mermaid.ink/svg/pako:${encoded}`;
+        // Build-time rendering via mermaid.ink
+        // Format: base64url of JSON {code, mermaid:{theme}}
+        const config = JSON.stringify({ code: text, mermaid: { theme: "default" } });
+        const encoded = Buffer.from(config).toString('base64url');
+        const imageUrl = `https://mermaid.ink/svg/${encoded}`;
 
         return `<div class="mermaid-diagram" style="text-align: center; margin: 16px 8px; overflow-x: auto;">
           <img src="${imageUrl}" alt="Mermaid Diagram" style="max-width: 100%; height: auto;" />

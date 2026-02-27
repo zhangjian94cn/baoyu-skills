@@ -97,13 +97,9 @@ function loadProjectEnv(): void {
   // 2. 从脚本所在路径向上找 (适应 skill 被嵌入到 .hub 等子目录的场景)
   traverseUp(__dirname);
 
-  // 3. 全局兜底
-  const home = os.homedir();
-  loadEnvFile(path.join(home, ".baoyu-skills", ".env"));
-  loadEnvFile(path.join(home, ".zhangjian-skills", ".env"));
-
   if (totalLoadedVars === 0) {
     console.log(`ℹ️  未找到或无需新增环境变量 (已扫描 ${loadedFiles.size} 个位置)`);
+    console.log(`   💡 请确认已运行 \`python manage.py env sync\` 分发环境变量`);
   }
 }
 
@@ -553,7 +549,10 @@ function parseImageGenBlocks(mdContent: string, mdDir: string): ImageGenBlock[] 
 
     const refField = fields["ref"] || "";
     const refs = refField
-      ? refField.split(/,\s*/).map(r => path.resolve(mdDir, r.trim())).filter(Boolean)
+      ? refField.split(/,\s*/).map(r => {
+        const trimmed = r.trim();
+        return path.isAbsolute(trimmed) ? trimmed : path.resolve(mdDir, trimmed);
+      }).filter(Boolean)
       : [];
 
     blocks.push({
@@ -806,7 +805,11 @@ async function main() {
     const fullPrompt = coverRef
       ? `${prompt}\n\n[Style Reference] Only reference the visual style of the attached image (colors, layout, typography, design language). Do NOT reproduce its content.`
       : prompt;
-    const coverOutput = path.join(path.dirname(filePath), "_ai_cover.png");
+    // Use frontmatter cover path if specified, otherwise fallback to _ai_cover.png
+    const fmCoverPath = extractFrontmatter(filePath).cover;
+    const coverOutput = fmCoverPath
+      ? (path.isAbsolute(fmCoverPath) ? fmCoverPath : path.resolve(path.dirname(filePath), fmCoverPath))
+      : path.join(path.dirname(filePath), "_ai_cover.png");
 
     console.log(`   Skill:    ${coverSkill}`);
     if (coverSkill === "image-gen") {
@@ -822,7 +825,16 @@ async function main() {
     if (options.dryRun) {
       console.log("   (预览模式，跳过实际生成)\n");
       coverPath = coverOutput;
+    } else if (fs.existsSync(coverOutput)) {
+      console.log("   ⏭️  封面已存在，跳过生成\n");
+      coverPath = coverOutput;
     } else {
+      // Ensure output directory exists
+      const coverDir = path.dirname(coverOutput);
+      if (!fs.existsSync(coverDir)) {
+        fs.mkdirSync(coverDir, { recursive: true });
+      }
+
       // 根据 skill 构建不同的命令参数
       let genArgs: string[];
       if (coverSkill === "image-gen") {
@@ -834,7 +846,9 @@ async function main() {
           "--provider", coverProvider,
         ];
         if (coverRef) {
-          const refPath = path.resolve(path.dirname(filePath), coverRef);
+          const refPath = path.isAbsolute(coverRef)
+            ? coverRef
+            : path.resolve(path.dirname(filePath), coverRef);
           if (fs.existsSync(refPath)) {
             genArgs.push("--ref", refPath);
           } else {

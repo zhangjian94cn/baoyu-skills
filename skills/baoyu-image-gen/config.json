@@ -1,0 +1,11 @@
+{
+    "defaultProvider": "google",
+    "defaultQuality": "2k",
+    "defaultAspectRatio": "4:3",
+    "models": {
+        "google": "gemini-3.1-flash-image-preview",
+        "google_tmp": "gemini-3-pro-image-preview",
+        "openai": "gpt-image-1.5",
+        "dashscope": "z-image-turbo"
+    }
+}

@@ -98,9 +98,8 @@ export function getProjectRoot(scriptDir: string): string {
  */
 export function getEnvPaths(projectRoot: string): string[] {
   return [
-    path.join(projectRoot, ".env"),                        // 项目根目录 .env
-    path.join(process.cwd(), ".baoyu-skills", ".env"),     // 当前目录/.baoyu-skills/.env
-    path.join(os.homedir(), ".baoyu-skills", ".env"),      // ~/.baoyu-skills/.env
+    path.join(projectRoot, ".env"),                        // 项目根目录 .env (由 manage.py env sync 分发)
+    path.join(projectRoot, "skills", "baoyu-post-to-wechat", "scripts", ".env"), // skill 自身 .env
   ];
 }
 

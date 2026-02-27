@@ -1,6 +1,7 @@
 import path from "node:path";
 import process from "node:process";
 import { homedir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import type { CliArgs, Provider, ExtendConfig } from "./types";
 
@@ -39,7 +40,7 @@ Environment variables:
   GOOGLE_BASE_URL           Custom Google endpoint
   DASHSCOPE_BASE_URL        Custom DashScope endpoint
 
-Env file load order: CLI args > EXTEND.md > process.env > <cwd>/.baoyu-skills/.env > ~/.baoyu-skills/.env`);
+Env file load order: CLI args > EXTEND.md > process.env > .env (traverses up from cwd and script dir)`);
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -219,18 +220,56 @@ async function loadEnvFile(p: string): Promise<Record<string, string>> {
 }
 
 async function loadEnv(): Promise<void> {
-  const home = homedir();
+  const scriptDir = path.dirname(new URL(import.meta.url).pathname);
   const cwd = process.cwd();
+  const loaded = new Set<string>();
 
-  const homeEnv = await loadEnvFile(path.join(home, ".baoyu-skills", ".env"));
-  const cwdEnv = await loadEnvFile(path.join(cwd, ".baoyu-skills", ".env"));
+  const tryLoad = async (p: string) => {
+    if (loaded.has(p)) return;
+    const env = await loadEnvFile(p);
+    loaded.add(p);
+    for (const [k, v] of Object.entries(env)) {
+      if (!process.env[k]) process.env[k] = v;
+    }
+  };
 
-  for (const [k, v] of Object.entries(homeEnv)) {
-    if (!process.env[k]) process.env[k] = v;
+  // 1. 从 cwd 向上找 .env（优先级最高）
+  let dir = cwd;
+  while (true) {
+    await tryLoad(path.join(dir, ".env"));
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
-  for (const [k, v] of Object.entries(cwdEnv)) {
-    if (!process.env[k]) process.env[k] = v;
+
+  // 2. 从脚本目录向上找 .env（适配 skill 被嵌入到 .hub 等场景）
+  dir = scriptDir;
+  while (true) {
+    await tryLoad(path.join(dir, ".env"));
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
+}
+
+// ============ config.json ============
+
+interface SkillConfig {
+  defaultProvider?: Provider;
+  defaultQuality?: "normal" | "2k";
+  defaultAspectRatio?: string;
+  models?: Partial<Record<Provider, string>>;
+}
+
+function loadSkillConfig(): SkillConfig {
+  const scriptDir = path.dirname(new URL(import.meta.url).pathname);
+  const configPath = path.join(scriptDir, "..", "config.json");
+  try {
+    if (existsSync(configPath)) {
+      return JSON.parse(readFileSync(configPath, "utf8")) as SkillConfig;
+    }
+  } catch { /* ignore */ }
+  return {};
 }
 
 function extractYamlFrontMatter(content: string): string | null {
@@ -340,7 +379,7 @@ function normalizeOutputImagePath(p: string): string {
   return `${full}.png`;
 }
 
-function detectProvider(args: CliArgs): Provider {
+function detectProvider(args: CliArgs, config: SkillConfig = {}): Provider {
   if (args.referenceImages.length > 0 && args.provider && args.provider !== "google" && args.provider !== "openai") {
     throw new Error(
       "Reference images require a ref-capable provider. Use --provider google (Gemini multimodal) or --provider openai (GPT Image edits)."
@@ -363,12 +402,13 @@ function detectProvider(args: CliArgs): Provider {
 
   const available = [hasGoogle && "google", hasOpenai && "openai", hasDashscope && "dashscope"].filter(Boolean) as Provider[];
 
-  if (available.length === 1) return available[0]!;
-  if (available.length > 1) return available[0]!;
+  // config.json defaultProvider 优先（如果对应 key 可用）
+  if (config.defaultProvider && available.includes(config.defaultProvider)) return config.defaultProvider;
+  if (available.length >= 1) return available[0]!;
 
   throw new Error(
     "No API key found. Set GOOGLE_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, or DASHSCOPE_API_KEY.\n" +
-      "Create ~/.baoyu-skills/.env or <cwd>/.baoyu-skills/.env with your keys."
+    "Ensure your repo root .env has the required keys and run `python manage.py env sync`."
   );
 }
 
@@ -419,10 +459,11 @@ async function main(): Promise<void> {
   }
 
   await loadEnv();
+  const skillConfig = loadSkillConfig();
   const extendConfig = await loadExtendConfig();
   const mergedArgs = mergeConfig(args, extendConfig);
 
-  if (!mergedArgs.quality) mergedArgs.quality = "2k";
+  if (!mergedArgs.quality) mergedArgs.quality = skillConfig.defaultQuality ?? "2k";
 
   let prompt: string | null = mergedArgs.prompt;
   if (!prompt && mergedArgs.promptFiles.length > 0) prompt = await readPromptFromFiles(mergedArgs.promptFiles);
@@ -446,7 +487,7 @@ async function main(): Promise<void> {
     await validateReferenceImages(mergedArgs.referenceImages);
   }
 
-  const provider = detectProvider(mergedArgs);
+  const provider = detectProvider(mergedArgs, skillConfig);
   const providerModule = await loadProviderModule(provider);
 
   let model = mergedArgs.model;
@@ -455,7 +496,8 @@ async function main(): Promise<void> {
     if (provider === "openai") model = extendConfig.default_model.openai ?? null;
     if (provider === "dashscope") model = extendConfig.default_model.dashscope ?? null;
   }
-  model = model || providerModule.getDefaultModel();
+  // config.json models > provider hardcoded default
+  model = model || skillConfig.models?.[provider] || providerModule.getDefaultModel();
 
   const outputPath = normalizeOutputImagePath(mergedArgs.imagePath);
 
